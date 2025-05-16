@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "Components/InputComponent.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
 #include "UtilityAICharacter.generated.h"
 
 class USpringArmComponent;
