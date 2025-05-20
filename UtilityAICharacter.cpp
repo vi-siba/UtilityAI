@@ -11,13 +11,19 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 
+#include "AIUtilityController.h"
+#include "AIModifierComponent.h"
+
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 //////////////////////////////////////////////////////////////////////////
 // AUtilityAICharacter
 
+
 AUtilityAICharacter::AUtilityAICharacter()
 {
+	AIModifierComponent = CreateDefaultSubobject<UAIModifierComponent>(TEXT("AIModifierComponent"));
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 		
@@ -53,6 +59,18 @@ AUtilityAICharacter::AUtilityAICharacter()
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
+
+void AUtilityAICharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (AAIUtilityController* AIController = Cast<AAIUtilityController>(GetController()))
+	{
+		AIController->SetModifierComponent(AIModifierComponent);
+	}
+}
+
+
 
 //////////////////////////////////////////////////////////////////////////
 // Input

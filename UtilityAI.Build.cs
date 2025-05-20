@@ -8,7 +8,15 @@ public class UtilityAI : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AIModule" });
+        PublicDependencyModuleNames.AddRange(new string[] {
+    "Core",
+    "CoreUObject",
+    "Engine",
+    "UnrealEd",       
+    "AIModule",        
+    "GameplayTasks",
+    "EnhancedInput"
+});
 
     }
 }
