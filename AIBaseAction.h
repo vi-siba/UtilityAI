@@ -52,7 +52,6 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
     TMap<FName, float> ParameterEffects;
-
    
     UPROPERTY(BlueprintReadWrite, Category = "Utility AI")
     float UtilityModifier = 0.0f;

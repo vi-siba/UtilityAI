@@ -21,7 +21,6 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
             float ParamValue = Parameters[ParamName];
             float UtilityFromCurve = Curve->GetFloatValue(ParamValue);
 
-            // ?? Применяем модификатор, если есть
             float CurveModifier = 0.0f;
             if (const float* ModPtr = CurveModifiersMap.Find(ParamName))
             {
@@ -31,7 +30,6 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
             float ModifiedUtility = UtilityFromCurve + CurveModifier;
             TotalUtility += ModifiedUtility;
 
-            // ?? Выводим в лог
             FString CurveContribution = FString::Printf(TEXT("\n - [%s]: %.2f ? %.2f (+%.2f)"),
                 *ParamName.ToString(), ParamValue, UtilityFromCurve, CurveModifier);
 
@@ -60,11 +58,6 @@ void UAIBaseAction::ApplyEffects(TMap<FName, float>& Parameters)
     }
 }
 
-void UAIBaseAction::Execute_Implementation()
-{
-    UE_LOG(LogTemp, Log, TEXT("Executing action: %s"), *ActionName.ToString());
-}
-
 TArray<FName> UAIBaseAction::GetRelevantParameters() const
 {
     TArray<FName> Keys;
@@ -76,4 +69,10 @@ TArray<FName> UAIBaseAction::GetRelevantParameters() const
 void UAIBaseAction::AddOrUpdateCurveModifier(FName CurveName, float ModifierValue)
 {
     CurveModifiersMap.Add(CurveName, ModifierValue); 
+}
+
+
+void UAIBaseAction::Execute_Implementation()
+{
+    UE_LOG(LogTemp, Log, TEXT("Executing action: %s"), *ActionName.ToString());
 }

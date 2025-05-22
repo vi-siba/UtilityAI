@@ -54,7 +54,7 @@ public:
 	
 
 
-	// Utility AI Modifier component overrided!!!;
+	// Utility AI Modifier component!!!;
 	virtual void BeginPlay() override;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UAIModifierComponent* AIModifierComponent;

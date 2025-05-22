@@ -14,7 +14,7 @@ void AAIUtilityController::BeginPlay()
 {
     Super::BeginPlay();
 
-    InitializeActions();
+    //InitializeActions();
     GetWorldTimerManager().SetTimer(UtilityEvaluationTimer, this, &AAIUtilityController::EvaluateAndAct, 2.0f, true);
 }
 
@@ -23,10 +23,6 @@ void AAIUtilityController::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 }
 
-void AAIUtilityController::InitializeActions()
-{
-    // Реализация инициализации действий
-}
 
 void AAIUtilityController::EvaluateAndAct()
 {
@@ -37,8 +33,6 @@ void AAIUtilityController::EvaluateAndAct()
     for (UAIBaseAction* Action : Actions)
     {
         if (!Action) continue;
-
-        // Узнаём, какие параметры нужны действию
         for (const FName& ParamName : Action->GetRelevantParameters())
         {
             if (!CurrentParameters.Contains(ParamName))
@@ -47,7 +41,6 @@ void AAIUtilityController::EvaluateAndAct()
             }
         }
     }
-    // Создание всех возможных действий
     for (TSubclassOf<UAIBaseAction> ActionClass : ActionClasses)
     {
         if (ActionClass)
@@ -60,12 +53,11 @@ void AAIUtilityController::EvaluateAndAct()
         }
     }
 
-    // Применение модификаторов
     if (ModifierComponent)
     {
         ModifierComponent->ApplyModifiers(Actions);
     }
-    // Оценка полезности и выбор лучшего действия
+
     UAIBaseAction* BestAction = nullptr;
     float HighestUtility = -FLT_MAX;
 
@@ -73,7 +65,7 @@ void AAIUtilityController::EvaluateAndAct()
     {
         if (Action)
         {
-            float Utility = Action->CalculateUtility(CurrentParameters); // <--- твоя карта параметров
+            float Utility = Action->CalculateUtility(CurrentParameters);
             if (Utility > HighestUtility)
             {
                 HighestUtility = Utility;
@@ -82,16 +74,18 @@ void AAIUtilityController::EvaluateAndAct()
         }
     }
 
-    // Выполнение лучшего действия
     if (BestAction)
     {
         BestAction->Execute();
-        BestAction->ApplyEffects(CurrentParameters); // <--- не забываем обновить параметры
+        BestAction->ApplyEffects(CurrentParameters);
     }
 }
-
 
 void AAIUtilityController::SetModifierComponent(UAIModifierComponent* ModifierComp)
 {
     ModifierComponent = ModifierComp;
+}
+
+void AAIUtilityController::InitializeActions()
+{
 }

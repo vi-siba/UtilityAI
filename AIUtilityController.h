@@ -15,24 +15,17 @@ class UTILITYAI_API AAIUtilityController : public AAIController
 
 public:
     AAIUtilityController(const FObjectInitializer& ObjectInitializer);
-
     virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Utility AI")
     TMap<FName, float> CurrentParameters;
-
-
     void SetModifierComponent(UAIModifierComponent* ModifierComp);
 
-
 protected:
-
     UPROPERTY()
     UAIModifierComponent* ModifierComponent;
-
-
-
+    
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Utility AI")
     TArray<TSubclassOf<UAIBaseAction>> ActionClasses;
 
