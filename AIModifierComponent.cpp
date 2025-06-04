@@ -62,7 +62,6 @@ void UAIModifierComponent::ModifyCurveUtility(FName ActionName, FName CurveName,
     float& CurrentModifier = ModifierMap.CurveModifiers.FindOrAdd(CurveName);
     CurrentModifier += DeltaModifier;
 
-    /*
     if (FMath::IsNearlyZero(CurrentModifier, KINDA_SMALL_NUMBER))
     {
         ModifierMap.CurveModifiers.Remove(CurveName);
@@ -72,5 +71,5 @@ void UAIModifierComponent::ModifyCurveUtility(FName ActionName, FName CurveName,
     {
         CurveModifiers.Remove(ActionName);
     }
-    */
 }
+

@@ -3,8 +3,7 @@
 #include "GameFramework/Character.h"
 #include "AIModifierComponent.h"
 
-AAIUtilityController::AAIUtilityController(const FObjectInitializer& ObjectInitializer)
-    : Super(ObjectInitializer)
+AAIUtilityController::AAIUtilityController(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer)
 {
   //  ModifierComponent = CreateDefaultSubobject<UAIModifierComponent>(TEXT("ModifierComponent"));
     PrimaryActorTick.bCanEverTick = true;
@@ -13,45 +12,13 @@ AAIUtilityController::AAIUtilityController(const FObjectInitializer& ObjectIniti
 void AAIUtilityController::BeginPlay()
 {
     Super::BeginPlay();
-
-    //InitializeActions();
     GetWorldTimerManager().SetTimer(UtilityEvaluationTimer, this, &AAIUtilityController::EvaluateAndAct, 2.0f, true);
 }
 
-void AAIUtilityController::Tick(float DeltaTime)
-{
-    Super::Tick(DeltaTime);
-}
-
-
 void AAIUtilityController::EvaluateAndAct()
 {
-   // if (!ModifierComponent) return;
-
-
     TArray<UAIBaseAction*> Actions;
-    for (UAIBaseAction* Action : Actions)
-    {
-        if (!Action) continue;
-        for (const FName& ParamName : Action->GetRelevantParameters())
-        {
-            if (!CurrentParameters.Contains(ParamName))
-            {
-                CurrentParameters.Add(ParamName, 0.5f); // Стартовое значение по умолчанию
-            }
-        }
-    }
-    for (TSubclassOf<UAIBaseAction> ActionClass : ActionClasses)
-    {
-        if (ActionClass)
-        {
-            UAIBaseAction* NewAction = NewObject<UAIBaseAction>(this, ActionClass);
-            if (NewAction)
-            {
-                Actions.Add(NewAction);
-            }
-        }
-    }
+    CreateAndInitializeActions(Actions);
 
     if (ModifierComponent)
     {
@@ -63,14 +30,11 @@ void AAIUtilityController::EvaluateAndAct()
 
     for (UAIBaseAction* Action : Actions)
     {
-        if (Action)
+        const float Utility = Action->CalculateUtility(CurrentParameters);
+        if (Utility > HighestUtility)
         {
-            float Utility = Action->CalculateUtility(CurrentParameters);
-            if (Utility > HighestUtility)
-            {
-                HighestUtility = Utility;
-                BestAction = Action;
-            }
+            HighestUtility = Utility;
+            BestAction = Action;
         }
     }
 
@@ -81,11 +45,28 @@ void AAIUtilityController::EvaluateAndAct()
     }
 }
 
+
+void AAIUtilityController::CreateAndInitializeActions(TArray<UAIBaseAction*>& OutActions)
+{
+    for (TSubclassOf<UAIBaseAction> ActionClass : ActionClasses)
+    {
+        if (!ActionClass) continue;
+
+        UAIBaseAction* NewAction = NewObject<UAIBaseAction>(this, ActionClass);
+        if (!NewAction) continue;
+
+        for (const FName& ParamName : NewAction->GetRelevantParameters())
+        {
+            CurrentParameters.FindOrAdd(ParamName, 0.5f);
+        }
+
+        OutActions.Add(NewAction);
+    }
+}
+
+
 void AAIUtilityController::SetModifierComponent(UAIModifierComponent* ModifierComp)
 {
     ModifierComponent = ModifierComp;
 }
 
-void AAIUtilityController::InitializeActions()
-{
-}

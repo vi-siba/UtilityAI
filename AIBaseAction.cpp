@@ -1,4 +1,4 @@
-#include "AIBaseAction.h"
+﻿#include "AIBaseAction.h"
 #include "Engine/Engine.h"
 
 UAIBaseAction::UAIBaseAction()
@@ -9,32 +9,24 @@ UAIBaseAction::UAIBaseAction()
 float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
 {
     float TotalUtility = 0.0f;
+
     FString DebugMessage = FString::Printf(TEXT("Action: %s"), *ActionName.ToString());
 
-    for (const auto& CurvePair : UtilityCurves)
+    for (const auto& [ParamName, Curve] : UtilityCurves)
     {
-        const FName& ParamName = CurvePair.Key;
-        UCurveFloat* Curve = CurvePair.Value;
+        if (!Curve) continue;
 
-        if (Curve && Parameters.Contains(ParamName))
-        {
-            float ParamValue = Parameters[ParamName];
-            float UtilityFromCurve = Curve->GetFloatValue(ParamValue);
+        const float* ParamValuePtr = Parameters.Find(ParamName);
+        if (!ParamValuePtr) continue;
 
-            float CurveModifier = 0.0f;
-            if (const float* ModPtr = CurveModifiersMap.Find(ParamName))
-            {
-                CurveModifier = *ModPtr;
-            }
+        float ParamValue = *ParamValuePtr;
+        float UtilityFromCurve = Curve->GetFloatValue(ParamValue);
+        float CurveModifier = CurveModifiersMap.FindRef(ParamName);
 
-            float ModifiedUtility = UtilityFromCurve + CurveModifier;
-            TotalUtility += ModifiedUtility;
+        float ModifiedUtility = UtilityFromCurve + CurveModifier;
+        TotalUtility += ModifiedUtility;
 
-            FString CurveContribution = FString::Printf(TEXT("\n - [%s]: %.2f ? %.2f (+%.2f)"),
-                *ParamName.ToString(), ParamValue, UtilityFromCurve, CurveModifier);
-
-            DebugMessage.Append(CurveContribution);
-        }
+        DebugMessage.Append(FString::Printf(TEXT("\n - [%s]: %.2f → %.2f (%.2f)"),*ParamName.ToString(), ParamValue, UtilityFromCurve, CurveModifier));
     }
 
     DebugMessage.Append(FString::Printf(TEXT("\n = Total: %.2f"), TotalUtility));
@@ -49,14 +41,13 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
 
 void UAIBaseAction::ApplyEffects(TMap<FName, float>& Parameters)
 {
-    for (const auto& EffectPair : ParameterEffects)
+    for (const auto& [ParamName, EffectValue] : ParameterEffects)
     {
-        if (Parameters.Contains(EffectPair.Key))
-        {
-            Parameters[EffectPair.Key] = FMath::Clamp(Parameters[EffectPair.Key] + EffectPair.Value, 0.0f, 1.0f);
-        }
+        float& ParamRef = Parameters.FindOrAdd(ParamName);
+        ParamRef = FMath::Clamp(ParamRef + EffectValue, 0.0f, 1.0f);
     }
 }
+
 
 TArray<FName> UAIBaseAction::GetRelevantParameters() const
 {
@@ -64,7 +55,6 @@ TArray<FName> UAIBaseAction::GetRelevantParameters() const
     UtilityCurves.GetKeys(Keys);
     return Keys;
 }
-
 
 void UAIBaseAction::AddOrUpdateCurveModifier(FName CurveName, float ModifierValue)
 {
