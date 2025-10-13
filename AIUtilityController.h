@@ -4,10 +4,12 @@
 #include "AIController.h"
 #include "AIBaseAction.h"
 #include "AIModifierComponent.h"
-
-//#include "AIModifierComponent.h"
 #include "AIUtilityController.generated.h"
 
+/// <summary>
+/// AAUTilityController is a base class for creation of a NPC behavior
+/// It tasks are: storing a set of the NPC actions, selecting an action to execute, based on it utility
+/// </summary>
 UCLASS()
 class UTILITYAI_API AAIUtilityController : public AAIController
 {
@@ -17,23 +19,31 @@ public:
     AAIUtilityController(const FObjectInitializer& ObjectInitializer);
     virtual void BeginPlay() override;
 
+    // Set current parameters in the Editor
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Utility AI")
     TMap<FName, float> CurrentParameters;
-    void SetModifierComponent(UAIModifierComponent* ModifierComp);
+
 
 protected:
+    // UAIModifierComponent is a components, which lets to additionaly change actions Utility (as in Real-Time, as in Editor)
+    void SetModifierComponent(UAIModifierComponent* ModifierComp);
     UPROPERTY()
     UAIModifierComponent* ModifierComponent;
 
+    // Array of Actions, available to be executed for the NPC
+    // You can create different additional custom arrays and switch between them based on NPC type
+    // F.e. create NPC controller for Zombies, and in this class create arrays for Melee zombie, Range zombe, ect.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Utility AI")
     TArray<TSubclassOf<UAIBaseAction>> ActionClasses;
 
-    /* UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Utility AI")
-     UAIModifierComponent* ModifierComponent;*/
-
-
 private:
+
+    /// <summary>
+    /// Function to evaluate existing Actions and choose between them one with the best Utility
+    /// </summary>
     void EvaluateAndAct();
+    
+
     void CreateAndInitializeActions(TArray<UAIBaseAction*>& OutActions);
 
     FTimerHandle UtilityEvaluationTimer;

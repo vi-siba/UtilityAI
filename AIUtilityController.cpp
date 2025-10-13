@@ -5,7 +5,6 @@
 
 AAIUtilityController::AAIUtilityController(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer)
 {
-  //  ModifierComponent = CreateDefaultSubobject<UAIModifierComponent>(TEXT("ModifierComponent"));
     PrimaryActorTick.bCanEverTick = true;
 }
 
@@ -17,6 +16,9 @@ void AAIUtilityController::BeginPlay()
 
 void AAIUtilityController::EvaluateAndAct()
 {
+    // !!! WIP
+    // !!! Change required!
+    // !!! This array needs to be moved to beginplay/parameters set up
     TArray<UAIBaseAction*> Actions;
     CreateAndInitializeActions(Actions);
 
@@ -28,6 +30,7 @@ void AAIUtilityController::EvaluateAndAct()
     UAIBaseAction* BestAction = nullptr;
     float HighestUtility = -FLT_MAX;
 
+    // Search for the Action with the best Utility
     for (UAIBaseAction* Action : Actions)
     {
         const float Utility = Action->CalculateUtility(CurrentParameters);
@@ -38,13 +41,13 @@ void AAIUtilityController::EvaluateAndAct()
         }
     }
 
+    // Execution of Action with the best Utility if there is one
     if (BestAction)
     {
         BestAction->Execute();
         BestAction->ApplyEffects(CurrentParameters);
     }
 }
-
 
 void AAIUtilityController::CreateAndInitializeActions(TArray<UAIBaseAction*>& OutActions)
 {

@@ -12,6 +12,7 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
 
     FString DebugMessage = FString::Printf(TEXT("Action: %s"), *ActionName.ToString());
 
+    // Calculation of TotalUtility, based on current NPC parameteres and action Curves
     for (const auto& [ParamName, Curve] : UtilityCurves)
     {
         if (!Curve) continue;

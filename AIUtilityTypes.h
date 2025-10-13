@@ -60,18 +60,17 @@ struct FAIAction
                 FString::Printf(TEXT("Executing Action: %s"), *Name));
         }
 
-        // Пример кастомной реакции
         if (Name == "Computering")
         {
-            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("😴 I am computering..."));
+            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("I am computering"));
         }
         else if (Name == "Eating")
         {
-            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Orange, TEXT("🍔 I am eating..."));
+            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Orange, TEXT("I am eating"));
         }
         else if (Name == "Speaking")
         {
-            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Purple, TEXT("🏃 I am speaking..."));
+            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Purple, TEXT("I am speaking"));
         }
     }
 

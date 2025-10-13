@@ -5,6 +5,10 @@
 #include "Curves/CurveFloat.h"
 #include "AIBaseAction.generated.h"
 
+/// <summary>
+/// UAIBaseAction is a base class for creation of a NPC actions
+/// It tasks are: storing a set of the actions parametres Curves, changins NPS parametres after Action execution
+/// </summary>
 UCLASS(Blueprintable)
 class UTILITYAI_API UAIBaseAction : public UObject
 {
@@ -13,14 +17,27 @@ class UTILITYAI_API UAIBaseAction : public UObject
 public:
     UAIBaseAction();
 
+    /// <summary>
+    /// Calculation of Action utility, based on current NPC parameteres
+    /// </summary>
+    /// <param name="Parameters"></param>
+    /// <returns></returns>
     UFUNCTION(BlueprintCallable, Category = "Utility AI")
     virtual float CalculateUtility(const TMap<FName, float>& Parameters);
 
+    /// <summary>
+    /// Influence of the actions on NPC parameteres after the Executeion
+    /// </summary>
+    /// <param name="Parameters"></param>
     UFUNCTION(BlueprintCallable, Category = "Utility AI")
     virtual void ApplyEffects(TMap<FName, float>& Parameters);
 
+    /// <summary>
+    /// Base Function for Executiong logic call
+    /// </summary>
     UFUNCTION(BlueprintNativeEvent, Category = "Utility AI")
     void Execute();
+
     virtual void Execute_Implementation();
 
     UFUNCTION(BlueprintCallable, Category = "Utility AI")
