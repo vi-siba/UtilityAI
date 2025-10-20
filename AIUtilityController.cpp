@@ -4,13 +4,11 @@
 #include "NavigationSystem.h"
 #include "NavMesh/RecastNavMesh.h"
 #include "AIModifierComponent.h"
-
 #include "EngineUtils.h"
 
 
 AAIUtilityController::AAIUtilityController(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer)
 {
-  //  ModifierComponent = CreateDefaultSubobject<UAIModifierComponent>(TEXT("ModifierComponent"));
     PrimaryActorTick.bCanEverTick = true;
 }
 
