@@ -1,10 +1,16 @@
 ﻿#include "AIUtilityController.h"
 #include "TimerManager.h"
 #include "GameFramework/Character.h"
+#include "NavigationSystem.h"
+#include "NavMesh/RecastNavMesh.h"
 #include "AIModifierComponent.h"
+
+#include "EngineUtils.h"
+
 
 AAIUtilityController::AAIUtilityController(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer)
 {
+  //  ModifierComponent = CreateDefaultSubobject<UAIModifierComponent>(TEXT("ModifierComponent"));
     PrimaryActorTick.bCanEverTick = true;
 }
 
@@ -16,9 +22,6 @@ void AAIUtilityController::BeginPlay()
 
 void AAIUtilityController::EvaluateAndAct()
 {
-    // !!! WIP
-    // !!! Change required!
-    // !!! This array needs to be moved to beginplay/parameters set up
     TArray<UAIBaseAction*> Actions;
     CreateAndInitializeActions(Actions);
 
@@ -30,7 +33,6 @@ void AAIUtilityController::EvaluateAndAct()
     UAIBaseAction* BestAction = nullptr;
     float HighestUtility = -FLT_MAX;
 
-    // Search for the Action with the best Utility
     for (UAIBaseAction* Action : Actions)
     {
         const float Utility = Action->CalculateUtility(CurrentParameters);
@@ -41,9 +43,10 @@ void AAIUtilityController::EvaluateAndAct()
         }
     }
 
-    // Execution of Action with the best Utility if there is one
     if (BestAction)
     {
+        BestAction->SetActionExecuterActor(GetPawn());
+
         BestAction->Execute();
         BestAction->ApplyEffects(CurrentParameters);
     }
@@ -67,9 +70,36 @@ void AAIUtilityController::CreateAndInitializeActions(TArray<UAIBaseAction*>& Ou
     }
 }
 
-
 void AAIUtilityController::SetModifierComponent(UAIModifierComponent* ModifierComp)
 {
     ModifierComponent = ModifierComp;
 }
 
+float AAIUtilityController::FindClosestActorOfClass(TSubclassOf<AActor> ActorClass)
+{
+        AActor* ClosestActor = nullptr;
+        float MinDistance = FLT_MAX;
+
+        for (TActorIterator<AActor> It(GetWorld(), ActorClass); It; ++It)
+        {
+            AActor* Actor = *It;
+            if (Actor != this)
+            {
+                float Distance = FVector::Dist(Actor->GetActorLocation(), GetPawn()->GetActorLocation());
+                if (Distance < MinDistance)
+                {
+                    MinDistance = Distance;
+                    ClosestActor = Actor;
+                }
+            }
+    }
+        return MinDistance;
+}
+
+void AAIUtilityController::SetParamNewValue(const FName& ParamName, float NewValue)
+{
+    if (CurrentParameters.Contains(ParamName))
+    {
+        CurrentParameters[ParamName] = NewValue;
+    }
+}

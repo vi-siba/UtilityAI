@@ -1,5 +1,6 @@
 ﻿#include "AIBaseAction.h"
 #include "Engine/Engine.h"
+#include "EngineUtils.h"
 
 UAIBaseAction::UAIBaseAction()
 {
@@ -12,7 +13,6 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
 
     FString DebugMessage = FString::Printf(TEXT("Action: %s"), *ActionName.ToString());
 
-    // Calculation of TotalUtility, based on current NPC parameteres and action Curves
     for (const auto& [ParamName, Curve] : UtilityCurves)
     {
         if (!Curve) continue;
@@ -45,7 +45,8 @@ void UAIBaseAction::ApplyEffects(TMap<FName, float>& Parameters)
     for (const auto& [ParamName, EffectValue] : ParameterEffects)
     {
         float& ParamRef = Parameters.FindOrAdd(ParamName);
-        ParamRef = FMath::Clamp(ParamRef + EffectValue, 0.0f, 1.0f);
+        ParamRef = ParamRef + EffectValue;
+        //ParamRef = FMath::Clamp(ParamRef + EffectValue, 0.0f, 1.0f);
     }
 }
 
@@ -63,7 +64,36 @@ void UAIBaseAction::AddOrUpdateCurveModifier(FName CurveName, float ModifierValu
 }
 
 
+
 void UAIBaseAction::Execute_Implementation()
 {
     UE_LOG(LogTemp, Log, TEXT("Executing action: %s"), *ActionName.ToString());
+}
+
+
+
+void UAIBaseAction::SetActionExecuterActor(AActor* ExecuterActor)
+{
+    ActionExecuterActor = ExecuterActor;
+}
+
+
+void UAIBaseAction::GetClosestActor(TSubclassOf<AActor> ActorClass)
+{
+    ClosestActor = nullptr;
+    float MinDistance = FLT_MAX;
+
+    for (TActorIterator<AActor> It(GetWorld(), ActorClass); It; ++It)
+    {
+        AActor* Actor = *It;
+        if (Actor != ActionExecuterActor)
+        {
+            float Distance = FVector::Dist(Actor->GetActorLocation(), ActionExecuterActor->GetActorLocation());
+            if (Distance < MinDistance)
+            {
+                MinDistance = Distance;
+                ClosestActor = Actor;
+            }
+        }
+    }
 }
