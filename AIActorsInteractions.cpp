@@ -2,16 +2,16 @@
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
 
-AActor* AIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToFind, AActor* ExecuterActor)
+AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToFind, AActor* ExecuterActor)
 {
-    if (!ActorClass || !ExecuterActor)
+    if (!ActorClassToFind || !ExecuterActor)
         return nullptr;
 
     //Reset of basic parametres
     AActor* ClosestActor = nullptr;
     float MinDistance = FLT_MAX;
 
-    for (TActorIterator<AActor> It(GetWorld(), ActorClass); It; ++It)
+    for (TActorIterator<AActor> It(GetWorld(), ActorClassToFind); It; ++It)
     {
         AActor* Actor = *It;
         if (Actor != ExecuterActor)
