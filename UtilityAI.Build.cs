@@ -15,7 +15,9 @@ public class UtilityAI : ModuleRules
     "UnrealEd",       
     "AIModule",        
     "GameplayTasks",
-    "EnhancedInput"
+    "EnhancedInput", 
+    "GameplayAbilities",
+    "GameplayTags",
 });
 
     }

@@ -90,5 +90,5 @@ protected:
     }
 
 private:
-    AAIActorsInteractions AIActorsInteractions;
+    UAIActorsInteractions AIActorsInteractions;
 };
