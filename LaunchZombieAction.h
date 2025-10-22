@@ -13,10 +13,18 @@ public:
     ULaunchZombieAction();
 
     UFUNCTION(BlueprintCallable, Category = "Ability")
-    void Launch();
+    void LaunchSelf();
 
+    bool ObstaclesAlongWay(FVector Destination);
 
 protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Launch")
     float LaunchStrength = 1500.f;
+
+    ACharacter* GetOwnedActor();
+    float RaiseValue=10.0f;
+
+private:
+    TSubclassOf<AActor> BuildingClass;
+    TArray<FVector> RaisedPointsArray(TArray<FVector> PointsArray);
 };
