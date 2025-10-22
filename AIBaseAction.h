@@ -4,7 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "UObject/NoExportTypes.h"
 #include "Curves/CurveFloat.h"
-#include "AIActorsInteractions.h"
+//#include "AIActorsInteractions.h"
 #include "AIBaseAction.generated.h"
 
 /// <summary>
@@ -83,12 +83,14 @@ protected:
    // UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
     AActor* ClosestActor;
     
+    /*
     UFUNCTION(BlueprintCallable, Category = "Check For Actors")
     AActor* GetClosestActor(TSubclassOf<AActor> ActorClass)
     {
         return AIActorsInteractions.GetClosestActor(ActorClass, ActionExecuterActor);
     }
+    */
 
 private:
-    UAIActorsInteractions AIActorsInteractions;
+  //  UAIActorsInteractions* AIActorsInteractions;
 };

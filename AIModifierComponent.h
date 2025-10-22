@@ -16,7 +16,8 @@ struct FCurveModifierMap
 
 class UAIBaseAction;
 
-UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
+//UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
+UCLASS(Blueprintable)
 class UTILITYAI_API UAIModifierComponent : public UActorComponent
 {
     GENERATED_BODY()

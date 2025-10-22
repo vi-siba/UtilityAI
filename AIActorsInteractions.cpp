@@ -7,14 +7,19 @@ AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToF
     if (!ActorClassToFind || !ExecuterActor)
         return nullptr;
 
-    //Reset of basic parametres
+   
+    UWorld* World = ExecuterActor->GetWorld();
+    if (!World)
+        return nullptr;
+
+    // Reset of basic parameters
     AActor* ClosestActor = nullptr;
     float MinDistance = FLT_MAX;
 
-    for (TActorIterator<AActor> It(GetWorld(), ActorClassToFind); It; ++It)
+    for (TActorIterator<AActor> It(World, ActorClassToFind); It; ++It)
     {
         AActor* Actor = *It;
-        if (Actor != ExecuterActor)
+        if (Actor && Actor != ExecuterActor)
         {
             float Distance = FVector::Dist(Actor->GetActorLocation(), ExecuterActor->GetActorLocation());
             if (Distance < MinDistance)
@@ -24,6 +29,7 @@ AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToF
             }
         }
     }
+
 
     return ClosestActor;
 }

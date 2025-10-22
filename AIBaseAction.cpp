@@ -5,6 +5,8 @@
 UAIBaseAction::UAIBaseAction()
 {
     ActionName = TEXT("BaseAction");
+ //   AIActorsInteractions = NewObject<UAIActorsInteractions>(this);
+
 }
 
 float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)

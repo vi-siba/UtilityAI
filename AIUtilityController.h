@@ -22,10 +22,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Utility AI")
     TMap<FName, float> CurrentParameters;
 
+    void SetModifierComponent(UAIModifierComponent* ModifierComp);
 protected:
 
     // UAIModifierComponent is a component, which lets to additionaly change actions Utility (as in Real-Time, as in Editor)
-    void SetModifierComponent(UAIModifierComponent* ModifierComp);
     UPROPERTY()
     UAIModifierComponent* ModifierComponent;
 
