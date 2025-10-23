@@ -45,6 +45,10 @@ ACharacter* ULaunchZombieAction::GetOwnedActor();
 
     AActor* OwnerActor = ActorInfo->OwnerActor.Get();
     ACharacter* Character = Cast<ACharacter>(OwnerActor);
+    
+    if (!Character)
+        return nullptr;
+    
     return Character;
 }
 */
@@ -58,7 +62,7 @@ bool ULaunchZombieAction::ObstaclesAlongWay(FVector Destination)
     if (!ActorInfo)
     {
         EndAbility(CurrentSpecHandle, ActorInfo, CurrentActivationInfo, true, false);
-        return;
+        return true;
     }
 
     AActor* OwnerActor = ActorInfo->OwnerActor.Get();
@@ -70,7 +74,7 @@ bool ULaunchZombieAction::ObstaclesAlongWay(FVector Destination)
 
     UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
     if (!NavSys)
-        return;
+        return true;
 
     UNavigationPath* NavPath = NavSys->FindPathToLocationSynchronously(GetWorld(), StartActor->GetActorLocation(), Destination);
     if (NavPath && NavPath->IsValid())
@@ -78,29 +82,16 @@ bool ULaunchZombieAction::ObstaclesAlongWay(FVector Destination)
         PathPoints = NavPath->PathPoints;
     }
 
-    FHitResult HitResult;
-    FCollisionQueryParams CollisionParams;
-    CollisionParams.AddIgnoredActor(this);
+    int numberOfPoints = sizeof(PathPoints) / sizeof(PathPoints[0]);
 
-    RaisedPointsArray = RaisedPointsArray(PathPoints);
-
-    for (i = 0, i < (sizeof(PathPoints)/sizeof(PathPoints[0])), i++)
-    {
-        bool bHit(
-            HitResult,
-            RaisedPointsArray[i],
-            RaisedPointsArray[i+1],
-            ECC_Visibility,
-            CollisionParams
-        );
-
-        if (HitResult.GetActor()->IsA(BuildingClass))
+    float Distance = FVector::Dist(PathPoints[numberOfPoints - 1], Destination);
+    if (Distance < AttackRange)
+        return false;
+    else
         return true;
-
-    }
-    return false;
 }
 
+/*
 TArray<FVector> ULaunchZombieAction::RaisedPointsArray(TArray<FVector> PointsArray)
 {
     for (i = 0, i < (sizeof(PointsArray) / sizeof(PointsArray[0])), i++)
@@ -110,3 +101,4 @@ TArray<FVector> ULaunchZombieAction::RaisedPointsArray(TArray<FVector> PointsArr
 
     return PointsArray;
 }
+*/

@@ -15,13 +15,16 @@ AAIUtilityController::AAIUtilityController(const FObjectInitializer& ObjectIniti
 void AAIUtilityController::BeginPlay()
 {
     Super::BeginPlay();
+
+    CreateAndInitializeActions(Actions);
+
     GetWorldTimerManager().SetTimer(UtilityEvaluationTimer, this, &AAIUtilityController::EvaluateAndAct, 2.0f, true);
 }
 
 void AAIUtilityController::EvaluateAndAct()
 {
     TArray<UAIBaseAction*> Actions;
-    CreateAndInitializeActions(Actions);
+
 
     if (ModifierComponent)
     {

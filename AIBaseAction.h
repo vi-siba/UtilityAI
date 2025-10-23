@@ -5,6 +5,9 @@
 #include "UObject/NoExportTypes.h"
 #include "Curves/CurveFloat.h"
 //#include "AIActorsInteractions.h"
+
+#include "HAL/CriticalSection.h"
+
 #include "AIBaseAction.generated.h"
 
 /// <summary>
