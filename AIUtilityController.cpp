@@ -4,10 +4,11 @@
 #include "NavigationSystem.h"
 #include "NavMesh/RecastNavMesh.h"
 #include "AIModifierComponent.h"
+#include "Navigation/CrowdFollowingComponent.h"
 #include "EngineUtils.h"
 
 
-AAIUtilityController::AAIUtilityController(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer)
+AAIUtilityController::AAIUtilityController(const FObjectInitializer& ObjectInitializer): Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
     PrimaryActorTick.bCanEverTick = true;
 }
@@ -15,6 +16,14 @@ AAIUtilityController::AAIUtilityController(const FObjectInitializer& ObjectIniti
 void AAIUtilityController::BeginPlay()
 {
     Super::BeginPlay();
+
+    UCrowdFollowingComponent* CrowdFollowingComponent = FindComponentByClass<UCrowdFollowingComponent>();
+    if (CrowdFollowingComponent)
+    {
+        CrowdFollowingComponent->SetCrowdSeparation(true);
+        CrowdFollowingComponent->SetCrowdSeparationWeight(50.0f);
+        CrowdFollowingComponent->SetCrowdAvoidanceRangeMultiplier(1.1f);
+    }
 
     CreateAndInitializeActions(Actions);
 

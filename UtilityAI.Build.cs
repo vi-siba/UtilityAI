@@ -18,6 +18,7 @@ public class UtilityAI : ModuleRules
     "EnhancedInput", 
     "GameplayAbilities",
     "GameplayTags",
+    "NavigationSystem"
 });
 
     }

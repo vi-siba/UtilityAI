@@ -4,7 +4,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "UObject/NoExportTypes.h"
 #include "Curves/CurveFloat.h"
-//#include "AIActorsInteractions.h"
+
+#include "AIActorsInteractions.h"
 
 #include "HAL/CriticalSection.h"
 
@@ -86,13 +87,17 @@ protected:
    // UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
     AActor* ClosestActor;
     
-    /*
+
     UFUNCTION(BlueprintCallable, Category = "Check For Actors")
     AActor* GetClosestActor(TSubclassOf<AActor> ActorClass)
     {
-        return AIActorsInteractions.GetClosestActor(ActorClass, ActionExecuterActor);
+        return AIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
     }
-    */
+    
+    // Check for Obstacles along the AI way to target;
+    bool ObstaclesAlongWay(FVector Destination);
+    float MinimumDistanceToTarget = 100.0f;
+
 
 private:
   //  UAIActorsInteractions* AIActorsInteractions;

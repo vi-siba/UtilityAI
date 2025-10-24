@@ -54,7 +54,22 @@ ACharacter* ULaunchZombieAction::GetOwnedActor();
 */
 
 
-bool ULaunchZombieAction::ObstaclesAlongWay(FVector Destination)
+
+/*
+TArray<FVector> ULaunchZombieAction::RaisedPointsArray(TArray<FVector> PointsArray)
+{
+    for (i = 0, i < (sizeof(PointsArray) / sizeof(PointsArray[0])), i++)
+    {
+        PointsArray[i].z += RaiseValue;
+    }
+
+    return PointsArray;
+}
+*/
+
+/*
+
+bool UAIBaseAction::ObstaclesAlongWay(FVector Destination)
 {
     // to another function
     const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
@@ -85,20 +100,10 @@ bool ULaunchZombieAction::ObstaclesAlongWay(FVector Destination)
     int numberOfPoints = sizeof(PathPoints) / sizeof(PathPoints[0]);
 
     float Distance = FVector::Dist(PathPoints[numberOfPoints - 1], Destination);
-    if (Distance < AttackRange)
+    if (Distance < MinimumDistanceToTarget)
         return false;
     else
         return true;
 }
 
-/*
-TArray<FVector> ULaunchZombieAction::RaisedPointsArray(TArray<FVector> PointsArray)
-{
-    for (i = 0, i < (sizeof(PointsArray) / sizeof(PointsArray[0])), i++)
-    {
-        PointsArray[i].z += RaiseValue;
-    }
-
-    return PointsArray;
-}
 */

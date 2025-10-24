@@ -2,12 +2,11 @@
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
 
-AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToFind, AActor* ExecuterActor)
+static AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToFind, AActor* ExecuterActor)
 {
     if (!ActorClassToFind || !ExecuterActor)
         return nullptr;
 
-   
     UWorld* World = ExecuterActor->GetWorld();
     if (!World)
         return nullptr;

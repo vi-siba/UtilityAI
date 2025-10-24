@@ -11,12 +11,12 @@
 /// It tasks are: storing a set of the NPC actions, selecting an action to execute, based on it utility
 /// </summary>
 UCLASS()
-class UTILITYAI_API AAIUtilityController : public AAIController
+class UTILITYAI_API AAIUtilityController : public AAIController 
 {
     GENERATED_BODY()
 
 public:
-    AAIUtilityController(const FObjectInitializer& ObjectInitializer);
+    AAIUtilityController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
     virtual void BeginPlay() override;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Utility AI")
