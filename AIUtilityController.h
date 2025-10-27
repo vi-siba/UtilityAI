@@ -54,6 +54,9 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Utility AI")
     void EvaluateAndAct();
 
+    UPROPERTY()
+    TArray<UAIBaseAction*> Actions;
+
 private:
     void CreateAndInitializeActions(TArray<UAIBaseAction*>& OutActions);
 
@@ -61,4 +64,6 @@ private:
     /// Timer to restart checking for best option
     /// </summary>
     FTimerHandle UtilityEvaluationTimer;
+
+    
 };

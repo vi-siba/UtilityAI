@@ -6,8 +6,6 @@ UAIBaseAction::UAIBaseAction()
 {
     ActionName = TEXT("BaseAction");
 
-   // AIActorsInteractions = NewObject<UAIActorsInteractions>(this);
-
 }
 
 float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
@@ -30,23 +28,41 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
 
         ///!!! WIP
         ///!!! Test 
+        float ModifiedUtility;
+        /*
         if (ActorClass)
         {
-            float Distance = FVector::Dist(GetClosestActor->GetActorLocation(), ExecuterActor->GetActorLocation());
-            float ModifiedUtility = UtilityFromCurve + CurveModifier + Distance;
-            TotalUtility += ModifiedUtility;
         }
         else
         {
-            float ModifiedUtility = UtilityFromCurve + CurveModifier;
+            ModifiedUtility = UtilityFromCurve + CurveModifier;
             TotalUtility += ModifiedUtility;
+
         }
+        */
+            AActor* GetClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
+           // float Distance = FVector::Dist(GetClosestActor->GetActorLocation(), ActionExecuterActor->GetActorLocation());
+            float Distance = (ActionExecuterActor->GetActorLocation() - GetClosestActor->GetActorLocation()).Size();
+            ModifiedUtility = UtilityFromCurve + CurveModifier + Distance;
+            TotalUtility += ModifiedUtility;
+            TotalUtility = Distance;
         ///!!! WIP
         ///!!! Test 
 
-        TotalUtility += ModifiedUtility;
+        //TotalUtility += ModifiedUtility;
 
         DebugMessage.Append(FString::Printf(TEXT("\n - [%s]: %.2f → %.2f (%.2f)"),*ParamName.ToString(), ParamValue, UtilityFromCurve, CurveModifier));
+    }
+
+    if (ActorClass)
+    {
+    AActor* GetClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
+    if (GetClosestActor)
+    {
+    float Distance = (ActionExecuterActor->GetActorLocation() - GetClosestActor->GetActorLocation()).Size();
+    TotalUtility = Distance;
+
+    }
     }
 
     DebugMessage.Append(FString::Printf(TEXT("\n = Total: %.2f"), TotalUtility));
@@ -91,10 +107,10 @@ void UAIBaseAction::SetActionExecuterActor(AActor* ExecuterActor)
     ActionExecuterActor = ExecuterActor;
 }
 
-
+/*
 bool UAIBaseAction::ObstaclesAlongWay(FVector Destination)
 {
-    if (!ExecuterActor)
+    if (!ActionExecuterActor)
     {
         return true;
     }
@@ -120,4 +136,5 @@ bool UAIBaseAction::ObstaclesAlongWay(FVector Destination)
         return true;
 }
 
+*/
 

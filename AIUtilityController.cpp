@@ -25,16 +25,15 @@ void AAIUtilityController::BeginPlay()
         CrowdFollowingComponent->SetCrowdAvoidanceRangeMultiplier(1.1f);
     }
 
+   // TArray<UAIBaseAction*> Actions;
     CreateAndInitializeActions(Actions);
 
     GetWorldTimerManager().SetTimer(UtilityEvaluationTimer, this, &AAIUtilityController::EvaluateAndAct, 2.0f, true);
 }
 
+
 void AAIUtilityController::EvaluateAndAct()
 {
-    TArray<UAIBaseAction*> Actions;
-
-
     if (ModifierComponent)
     {
         ModifierComponent->ApplyModifiers(Actions);
@@ -45,6 +44,12 @@ void AAIUtilityController::EvaluateAndAct()
 
     for (UAIBaseAction* Action : Actions)
     {
+        if (!Action || !IsValid(Action))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Null or invalid Action pointer in EvaluateAndAct."));
+            continue;
+        }
+
         const float Utility = Action->CalculateUtility(CurrentParameters);
         if (Utility > HighestUtility)
         {
@@ -56,20 +61,34 @@ void AAIUtilityController::EvaluateAndAct()
     if (BestAction)
     {
         BestAction->SetActionExecuterActor(GetPawn());
-
         BestAction->Execute();
         BestAction->ApplyEffects(CurrentParameters);
     }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("No valid BestAction found."));
+    }
 }
+
 
 void AAIUtilityController::CreateAndInitializeActions(TArray<UAIBaseAction*>& OutActions)
 {
     for (TSubclassOf<UAIBaseAction> ActionClass : ActionClasses)
     {
-        if (!ActionClass) continue;
+        if (!ActionClass)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Invalid ActionClass in CreateAndInitializeActions."));
+            continue;
+        }
 
         UAIBaseAction* NewAction = NewObject<UAIBaseAction>(this, ActionClass);
-        if (!NewAction) continue;
+        if (!NewAction || !IsValid(NewAction))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Failed to create or invalid NewAction."));
+            continue;
+        }
+
+        NewAction->SetActionExecuterActor(GetPawn());
 
         for (const FName& ParamName : NewAction->GetRelevantParameters())
         {

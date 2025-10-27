@@ -14,12 +14,14 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Ability")
     void LaunchSelf();
-
+    
 protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Launch")
     float LaunchStrength = 1500.f;
 
     ACharacter* GetOwnedActor();
+
+
 
 
 private:

@@ -2,7 +2,7 @@
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
 
-static AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToFind, AActor* ExecuterActor)
+AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToFind, AActor* ExecuterActor)
 {
     if (!ActorClassToFind || !ExecuterActor)
         return nullptr;

@@ -18,7 +18,8 @@ public:
     /// Function to find closest actor of class ActorClassToFind to actor ExecuterActor
     /// </summary>
     UFUNCTION(BlueprintCallable, Category = "Check For Actors")
-    static AActor* GetClosestActor(UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, AActor* ActionExecuter);
+    static AActor* GetClosestActor(TSubclassOf<AActor> ActorClassToFind, AActor* ExecuterActor);
+   //static AActor* GetClosestActor(UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, AActor* ActionExecuter);
 
 
 protected:
