@@ -1,13 +1,86 @@
-﻿#include "AIBaseAction.h"
+﻿#include "ZombieSpawner.h"
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
 
-UAIBaseAction::UAIBaseAction()
+AZombieSpawner::AZombieSpawner()
 {
-    ActionName = TEXT("BaseAction");
 
 }
 
+bool SpawnSingle(FVector PlacetoSpawn)
+{
+    if (!SpawnPoint)
+        return false;
+
+    SpawnObjectDisplacement.X = SpawnPoint->GetActorLocation().X + FMath::RandRange(-Displacement, Displacement);
+    SpawnObjectDisplacement.Y = SpawnPoint->GetActorLocation().Y + FMath::RandRange(-Displacement, Displacement);
+    SpawnObjectDisplacement.Z = SpawnPoint->GetActorLocation().Z;
+
+    ACharacter* SpawnedActor = GetWorld()->SpawnActor<ACharacter>(ZombieToSpawnClass, SpawnLocation, SpawnRotation, SpawnParams);
+
+    //AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(CablePlacementClass, SpawnObjectDisplacement, Rotation /* , SpawnParams */);
+
+    if (SpawnedActor)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Actor spawned successfully!"));
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+
+}
+
+
+AZombieSpawner::SpawnNPC()
+{
+    if (SpawnPoints.empty())
+        return;
+
+    /*
+    for (int i = 0, i < sizeof(SpawnPoints) / sizeof(SpawnPoints[0]), i++)
+    {
+         
+    }
+    */
+
+    for (int i = 0, i < ZombieBaseQuantity, i++)
+    {
+        while (!SpawnSingle(PlacetoSpawn))
+        ///////////////////////////////////////////////
+        // Zaglushka;
+        ///////////////////////////////////////////////
+
+    }
+
+}
+
+AZombieSpawner::AdditionalQuantity()
+{
+    if (UtilityCurves != nullptr)
+    {
+        for (const auto& [ParamName, Curve] : UtilityCurves)
+        {
+            if (!Curve) continue;
+
+            const float* ParamValuePtr = Parameters.Find(ParamName);
+            if (!ParamValuePtr) continue;
+
+            float ParamValue = *ParamValuePtr;
+            float UtilityFromCurve = Curve->GetFloatValue(ParamValue);
+            float CurveModifier = CurveModifiersMap.FindRef(ParamName);
+            float ModifiedUtility;
+
+            //ModifiedUtility = UtilityFromCurve + CurveModifier + Distance;
+            //TotalUtility += ModifiedUtility;
+            //TotalUtility = Distance;
+
+            DebugMessage.Append(FString::Printf(TEXT("\n - [%s]: %.2f → %.2f (%.2f)"), *ParamName.ToString(), ParamValue, UtilityFromCurve, CurveModifier));
+        }
+
+}
+/*
 float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
 {
     float TotalUtility = 0.0f;
@@ -31,7 +104,6 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
         ///!!! WIP
         ///!!! Test 
         float ModifiedUtility;
-        /*
         if (ActorClass)
         {
         }
@@ -41,7 +113,6 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
             TotalUtility += ModifiedUtility;
 
         }
-        */
             AActor* GetClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
             AActor* ClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
 
@@ -103,44 +174,4 @@ void UAIBaseAction::AddOrUpdateCurveModifier(FName CurveName, float ModifierValu
     CurveModifiersMap.Add(CurveName, ModifierValue); 
 }
 
-void UAIBaseAction::Execute_Implementation()
-{
-    UE_LOG(LogTemp, Log, TEXT("Executing action: %s"), *ActionName.ToString());
-}
-
-void UAIBaseAction::SetActionExecuterActor(AActor* ExecuterActor)
-{
-    ActionExecuterActor = ExecuterActor;
-}
-
-/*
-bool UAIBaseAction::ObstaclesAlongWay(FVector Destination)
-{
-    if (!ActionExecuterActor)
-    {
-        return true;
-    }
-
-    TArray<FVector> PathPoints;
-
-    UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
-    if (!NavSys)
-        return true;
-
-    UNavigationPath* NavPath = NavSys->FindPathToLocationSynchronously(GetWorld(), ExecuterActor->GetActorLocation(), Destination);
-    if (NavPath && NavPath->IsValid())
-    {
-        PathPoints = NavPath->PathPoints;
-    }
-
-    int numberOfPoints = sizeof(PathPoints) / sizeof(PathPoints[0]);
-
-    float Distance = FVector::Dist(PathPoints[numberOfPoints - 1], Destination);
-    if (Distance < MinimumDistanceToTarget)
-        return false;
-    else
-        return true;
-}
-
-*/
-
+        */

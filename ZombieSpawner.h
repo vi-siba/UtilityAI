@@ -5,46 +5,52 @@
 #include "UObject/NoExportTypes.h"
 #include "Curves/CurveFloat.h"
 
-#include "AIActorsInteractions.h"
-
 #include "HAL/CriticalSection.h"
 
-#include "AIBaseAction.generated.h"
+#include "ZombieSpawner.generated.h"
 
-/// <summary>
-/// UAIBaseAction is a base class for creation of a NPC actions
-/// It tasks are: storing a set of the actions parametres Curves, changins NPS parametres after Action execution
-/// </summary>
+
 UCLASS(Blueprintable)
-class UTILITYAI_API UAIBaseAction : public UObject
+class UTILITYAI_API AZombieSpawner : public AActor
 {
     GENERATED_BODY()
 
 public:
+
+private:
+    void SpawnNPC();
+    
+    int BaseQuantity = 5;
+    int AdditionalQuantity();
+    bool SpawnSingle(FVector PlacetoSpawn);
+    float Displacement;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
+    AActor* SpawnPoint;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
+    TSubclassOf<ACharacter> ZombieToSpawnClass;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
+    TArray<AActor*> SpawnPoints;
+
+    UFUNCTION(BlueprintCallable, Category = "Utility AI")
+    float CalculateUtility(const TMap<FName, float>& Parameters);
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
+    TMap<FName, UCurveFloat*> UtilityCurves;
+
+    /*
     UAIBaseAction();
 
-    /// <summary>
-    /// Calculation of Action utility, based on current NPC parameteres
-    /// </summary>
-    /// <param name="Parameters"></param>
-    /// <returns></returns>
-    UFUNCTION(BlueprintCallable, Category = "Utility AI")
-    virtual float CalculateUtility(const TMap<FName, float>& Parameters);
 
-    /// <summary>
-    /// Influence of the actions on NPC parameteres after the Executeion
-    /// </summary>
-    /// <param name="Parameters"></param>
+
     UFUNCTION(BlueprintCallable, Category = "Utility AI")
     virtual void ApplyEffects(TMap<FName, float>& Parameters);
 
-    /// <summary>
-    /// Base Function for Executiong logic call in Blueprtins
-    /// </summary>
     UFUNCTION(BlueprintNativeEvent, Category = "Utility AI")
     void Execute();
 
-    // Addition Functions and Properties
     UFUNCTION(BlueprintCallable, Category = "Utility AI")
     FName GetActionName() const { return ActionName; }
 
@@ -66,7 +72,6 @@ public:
     UPROPERTY()
     TMap<FName, float> CurveModifiersMap;
 
-    //!!! Check and rewrite 
     void SetActionExecuterActor(AActor* ExecuterActor);
     void AddOrUpdateCurveModifier(FName CurveName, float ModifierValue);
     virtual void Execute_Implementation();
@@ -84,16 +89,13 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
     AActor* ActionExecuterActor;
 
-   // UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
     AActor* ClosestActor;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
     TSubclassOf<AActor> ActorClass;
     
-    // Check for Obstacles along the AI way to target;
-    bool ObstaclesAlongWay(FVector Destination);
-    float MinimumDistanceToTarget = 100.0f;
-
 
 private:
+    */
+
 };
