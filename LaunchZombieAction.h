@@ -13,7 +13,7 @@ public:
     ULaunchZombieAction();
 
     UFUNCTION(BlueprintCallable, Category = "Ability")
-    void LaunchSelf();
+    void LaunchSelf(AActor* ClosestActor);
     
 protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Launch")

@@ -15,9 +15,7 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
     FString DebugMessage = FString::Printf(TEXT("Action: %s"), *ActionName.ToString());
 
     // Calculation of TotalUtility, based on current NPC parameteres and action Curves
-    if (UtilityCurves != nullptr)
-    {
-            for (const auto& [ParamName, Curve] : UtilityCurves)
+    for (const auto& [ParamName, Curve] : UtilityCurves)
     {
         if (!Curve) continue;
 
@@ -43,8 +41,6 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
         }
         */
             AActor* GetClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
-            AActor* ClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
-
            // float Distance = FVector::Dist(GetClosestActor->GetActorLocation(), ActionExecuterActor->GetActorLocation());
             float Distance = (ActionExecuterActor->GetActorLocation() - GetClosestActor->GetActorLocation()).Size();
             ModifiedUtility = UtilityFromCurve + CurveModifier + Distance;
@@ -57,8 +53,6 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
 
         DebugMessage.Append(FString::Printf(TEXT("\n - [%s]: %.2f → %.2f (%.2f)"),*ParamName.ToString(), ParamValue, UtilityFromCurve, CurveModifier));
     }
-    }
-
 
     if (ActorClass)
     {

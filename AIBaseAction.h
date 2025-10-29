@@ -89,6 +89,14 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
     TSubclassOf<AActor> ActorClass;
+
+    /*
+    UFUNCTION(BlueprintCallable, Category = "Check For Actors")
+    AActor* GetClosestActor(TSubclassOf<AActor> ActorClass)
+    {
+        return AIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
+    }
+    */
     
     // Check for Obstacles along the AI way to target;
     bool ObstaclesAlongWay(FVector Destination);
@@ -96,4 +104,5 @@ protected:
 
 
 private:
+  //  UAIActorsInteractions* AIActorsInteractions;
 };

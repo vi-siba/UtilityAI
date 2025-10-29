@@ -7,22 +7,51 @@ AZombieSpawner::AZombieSpawner()
 
 }
 
-bool SpawnSingle(FVector PlacetoSpawn)
+void AZombieSpawner::SpawnNPC()
 {
-    if (!SpawnPoint)
+    if (SpawnPoints.IsEmpty())
+        return;
+
+    if (!ZombieClass)
+        return;
+    int AdditionalNPC = AdditionalQuantity();
+
+    NPCQuantity += AdditionalNPC;
+
+    for (int i = 0; i < SpawnPoints.Num(); i++)
+    {
+        for (int j = 0; j < NPCQuantity; j++)
+        {
+            int attempts = 0;
+            const int maxAttempts = 5;
+
+            while (!SpawnSingle(SpawnPoints[i]) && attempts < maxAttempts)
+            {
+                attempts++;
+            }
+        }
+    }
+
+}
+
+bool AZombieSpawner::SpawnSingle(AActor* SpawnPointActor)
+{
+    if (!SpawnPointActor)
         return false;
 
-    SpawnObjectDisplacement.X = SpawnPoint->GetActorLocation().X + FMath::RandRange(-Displacement, Displacement);
-    SpawnObjectDisplacement.Y = SpawnPoint->GetActorLocation().Y + FMath::RandRange(-Displacement, Displacement);
-    SpawnObjectDisplacement.Z = SpawnPoint->GetActorLocation().Z;
+    FVector SpawnNPCLocation;
 
-    ACharacter* SpawnedActor = GetWorld()->SpawnActor<ACharacter>(ZombieToSpawnClass, SpawnLocation, SpawnRotation, SpawnParams);
+    SpawnNPCLocation.X = SpawnPointActor->GetActorLocation().X + FMath::RandRange(-Displacement, Displacement);
+    SpawnNPCLocation.Y = SpawnPointActor->GetActorLocation().Y + FMath::RandRange(-Displacement, Displacement);
+    SpawnNPCLocation.Z = SpawnPointActor->GetActorLocation().Z;
 
-    //AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(CablePlacementClass, SpawnObjectDisplacement, Rotation /* , SpawnParams */);
+    FRotator SpawnNPCRotation = SpawnPointActor->GetActorRotation();
+
+    AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ZombieClass, SpawnNPCLocation, SpawnNPCRotation /* SpawnParams*/);
 
     if (SpawnedActor)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Actor spawned successfully!"));
+      //  UE_LOG(LogTemp, Warning, TEXT("Actor spawned successfully!"));
         return true;
     }
     else
@@ -33,53 +62,34 @@ bool SpawnSingle(FVector PlacetoSpawn)
 }
 
 
-AZombieSpawner::SpawnNPC()
+int AZombieSpawner::AdditionalQuantity()
 {
-    if (SpawnPoints.empty())
-        return;
+   int AdditionalNPCQuantity=0;
 
-    /*
-    for (int i = 0, i < sizeof(SpawnPoints) / sizeof(SpawnPoints[0]), i++)
-    {
-         
-    }
-    */
+   if (UtilityCurves.IsEmpty())
+    return 0;
 
-    for (int i = 0, i < ZombieBaseQuantity, i++)
-    {
-        while (!SpawnSingle(PlacetoSpawn))
-        ///////////////////////////////////////////////
-        // Zaglushka;
-        ///////////////////////////////////////////////
+   if (CurrentParameters.IsEmpty())
+       return 0;
 
-    }
 
-}
-
-AZombieSpawner::AdditionalQuantity()
-{
-    if (UtilityCurves != nullptr)
-    {
-        for (const auto& [ParamName, Curve] : UtilityCurves)
+   for (const auto& [ParamName, Curve] : UtilityCurves)
         {
             if (!Curve) continue;
 
-            const float* ParamValuePtr = Parameters.Find(ParamName);
+            const float* ParamValuePtr = CurrentParameters.Find(ParamName);
             if (!ParamValuePtr) continue;
-
+            
             float ParamValue = *ParamValuePtr;
             float UtilityFromCurve = Curve->GetFloatValue(ParamValue);
-            float CurveModifier = CurveModifiersMap.FindRef(ParamName);
-            float ModifiedUtility;
 
-            //ModifiedUtility = UtilityFromCurve + CurveModifier + Distance;
-            //TotalUtility += ModifiedUtility;
-            //TotalUtility = Distance;
+            AdditionalNPCQuantity += abs(UtilityFromCurve);
 
-            DebugMessage.Append(FString::Printf(TEXT("\n - [%s]: %.2f → %.2f (%.2f)"), *ParamName.ToString(), ParamValue, UtilityFromCurve, CurveModifier));
         }
+   return AdditionalNPCQuantity;
 
 }
+
 /*
 float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
 {

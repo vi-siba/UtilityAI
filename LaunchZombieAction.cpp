@@ -11,8 +11,11 @@ ULaunchZombieAction::ULaunchZombieAction()
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 }
 
-void ULaunchZombieAction::LaunchSelf()
+void ULaunchZombieAction::LaunchSelf(AActor* ClosestActor)
 {
+    if (!ClosestActor)
+        return;
+
     const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
 
     if (!ActorInfo)
@@ -23,12 +26,19 @@ void ULaunchZombieAction::LaunchSelf()
 
     AActor* OwnerActor = ActorInfo->OwnerActor.Get();
     ACharacter* Character = Cast<ACharacter>(OwnerActor);
-    if (Character)
-    {
-        FRotator ControlRotation = Character->GetControlRotation();
-        FVector LaunchDirection = ControlRotation.Vector();
 
-        Character->LaunchCharacter(LaunchDirection * LaunchStrength, true, true);
+    AActor* AClosestActor = ClosestActor;
+    ACharacter* CharClosestActor = Cast<ACharacter>(AClosestActor);
+
+    if (Character && CharClosestActor)
+    {
+        float Distance = FVector::Distance(CharClosestActor->GetActorLocation(), OwnerActor->GetActorLocation());
+        FVector Direction = ( CharClosestActor->GetActorLocation() - OwnerActor->GetActorLocation()).GetSafeNormal();
+
+        FVector LaunchVelocity = Direction * Distance*5;
+
+        Character->LaunchCharacter(LaunchVelocity, true, true);
+
     }
 }
 

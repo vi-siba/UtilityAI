@@ -6,7 +6,6 @@
 #include "Curves/CurveFloat.h"
 
 #include "HAL/CriticalSection.h"
-
 #include "ZombieSpawner.generated.h"
 
 
@@ -17,28 +16,41 @@ class UTILITYAI_API AZombieSpawner : public AActor
 
 public:
 
-private:
+    AZombieSpawner();
+
+    UFUNCTION(BlueprintCallable, Category = "Utility AI")
     void SpawnNPC();
     
-    int BaseQuantity = 5;
+    int NPCQuantity = 5;
+    bool SpawnSingle(AActor* SpawnPointActor);
+
     int AdditionalQuantity();
-    bool SpawnSingle(FVector PlacetoSpawn);
-    float Displacement;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
-    AActor* SpawnPoint;
+    float Displacement=300.0f;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
-    TSubclassOf<ACharacter> ZombieToSpawnClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawning")
+    TSubclassOf<AActor> ZombieClass;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
     TArray<AActor*> SpawnPoints;
 
+    /*
     UFUNCTION(BlueprintCallable, Category = "Utility AI")
     float CalculateUtility(const TMap<FName, float>& Parameters);
+    */
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
     TMap<FName, UCurveFloat*> UtilityCurves;
+
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Utility AI")
+    TMap<FName, float> CurrentParameters;
+
+
+private:
+
+};
 
     /*
     UAIBaseAction();
@@ -98,4 +110,3 @@ protected:
 private:
     */
 
-};
