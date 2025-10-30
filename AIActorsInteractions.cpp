@@ -29,6 +29,5 @@ AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToF
         }
     }
 
-
     return ClosestActor;
 }

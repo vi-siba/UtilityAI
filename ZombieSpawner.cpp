@@ -14,6 +14,7 @@ void AZombieSpawner::SpawnNPC()
 
     if (!ZombieClass)
         return;
+
     int AdditionalNPC = AdditionalQuantity();
 
     NPCQuantity += AdditionalNPC;
@@ -47,20 +48,23 @@ bool AZombieSpawner::SpawnSingle(AActor* SpawnPointActor)
 
     FRotator SpawnNPCRotation = SpawnPointActor->GetActorRotation();
 
+    if (!ZombieClass)
+        return false;
+
     AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ZombieClass, SpawnNPCLocation, SpawnNPCRotation /* SpawnParams*/);
 
     if (SpawnedActor)
     {
-      //  UE_LOG(LogTemp, Warning, TEXT("Actor spawned successfully!"));
+      //  UE_LOG(LogTemp, Warning, TEXT("Actor spawned successfully"));
         return true;
     }
     else
     {
+        //  UE_LOG(LogTemp, Warning, TEXT("Actor wasn't spawned"));
         return false;
     }
 
 }
-
 
 int AZombieSpawner::AdditionalQuantity()
 {
@@ -89,99 +93,3 @@ int AZombieSpawner::AdditionalQuantity()
    return AdditionalNPCQuantity;
 
 }
-
-/*
-float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
-{
-    float TotalUtility = 0.0f;
-
-    FString DebugMessage = FString::Printf(TEXT("Action: %s"), *ActionName.ToString());
-
-    // Calculation of TotalUtility, based on current NPC parameteres and action Curves
-    if (UtilityCurves != nullptr)
-    {
-            for (const auto& [ParamName, Curve] : UtilityCurves)
-    {
-        if (!Curve) continue;
-
-        const float* ParamValuePtr = Parameters.Find(ParamName);
-        if (!ParamValuePtr) continue;
-
-        float ParamValue = *ParamValuePtr;
-        float UtilityFromCurve = Curve->GetFloatValue(ParamValue);
-        float CurveModifier = CurveModifiersMap.FindRef(ParamName);
-
-        ///!!! WIP
-        ///!!! Test 
-        float ModifiedUtility;
-        if (ActorClass)
-        {
-        }
-        else
-        {
-            ModifiedUtility = UtilityFromCurve + CurveModifier;
-            TotalUtility += ModifiedUtility;
-
-        }
-            AActor* GetClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
-            AActor* ClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
-
-           // float Distance = FVector::Dist(GetClosestActor->GetActorLocation(), ActionExecuterActor->GetActorLocation());
-            float Distance = (ActionExecuterActor->GetActorLocation() - GetClosestActor->GetActorLocation()).Size();
-            ModifiedUtility = UtilityFromCurve + CurveModifier + Distance;
-            TotalUtility += ModifiedUtility;
-            TotalUtility = Distance;
-        ///!!! WIP
-        ///!!! Test 
-
-        //TotalUtility += ModifiedUtility;
-
-        DebugMessage.Append(FString::Printf(TEXT("\n - [%s]: %.2f → %.2f (%.2f)"),*ParamName.ToString(), ParamValue, UtilityFromCurve, CurveModifier));
-    }
-    }
-
-
-    if (ActorClass)
-    {
-    AActor* GetClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
-    if (GetClosestActor)
-    {
-    float Distance = (ActionExecuterActor->GetActorLocation() - GetClosestActor->GetActorLocation()).Size();
-    TotalUtility = Distance;
-
-    }
-    }
-
-    DebugMessage.Append(FString::Printf(TEXT("\n = Total: %.2f"), TotalUtility));
-
-    if (GEngine)
-    {
-        GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Cyan, DebugMessage);
-    }
-
-    return TotalUtility;
-}
-
-void UAIBaseAction::ApplyEffects(TMap<FName, float>& Parameters)
-{
-    for (const auto& [ParamName, EffectValue] : ParameterEffects)
-    {
-        float& ParamRef = Parameters.FindOrAdd(ParamName);
-        ParamRef = ParamRef + EffectValue;
-        //ParamRef = FMath::Clamp(ParamRef + EffectValue, 0.0f, 1.0f);
-    }
-}
-
-TArray<FName> UAIBaseAction::GetRelevantParameters() const
-{
-    TArray<FName> Keys;
-    UtilityCurves.GetKeys(Keys);
-    return Keys;
-}
-
-void UAIBaseAction::AddOrUpdateCurveModifier(FName CurveName, float ModifierValue)
-{
-    CurveModifiersMap.Add(CurveName, ModifierValue); 
-}
-
-        */

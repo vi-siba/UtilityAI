@@ -19,7 +19,10 @@ public class UtilityAI : ModuleRules
     "GameplayAbilities",
     "GameplayTags",
     "NavigationSystem"
+
+
 });
+
 
     }
 }

@@ -10,9 +10,20 @@ UAIBaseAction::UAIBaseAction()
 
 float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
 {
-    float TotalUtility = 0.0f;
-
     FString DebugMessage = FString::Printf(TEXT("Action: %s"), *ActionName.ToString());
+
+    float TotalUtility = 0.0f;
+    
+    if (ActorClass)
+    {
+        AActor* GetClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
+        float Distance = (ActionExecuterActor->GetActorLocation() - GetClosestActor->GetActorLocation()).Size();
+        TotalUtility += Distance;
+    }
+
+
+    if (UtilityCurves.IsEmpty())
+        return TotalUtility;
 
     // Calculation of TotalUtility, based on current NPC parameteres and action Curves
     for (const auto& [ParamName, Curve] : UtilityCurves)
@@ -25,44 +36,10 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
         float ParamValue = *ParamValuePtr;
         float UtilityFromCurve = Curve->GetFloatValue(ParamValue);
         float CurveModifier = CurveModifiersMap.FindRef(ParamName);
-
-        ///!!! WIP
-        ///!!! Test 
-        float ModifiedUtility;
-        /*
-        if (ActorClass)
-        {
-        }
-        else
-        {
-            ModifiedUtility = UtilityFromCurve + CurveModifier;
-            TotalUtility += ModifiedUtility;
-
-        }
-        */
-            AActor* GetClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
-           // float Distance = FVector::Dist(GetClosestActor->GetActorLocation(), ActionExecuterActor->GetActorLocation());
-            float Distance = (ActionExecuterActor->GetActorLocation() - GetClosestActor->GetActorLocation()).Size();
-            ModifiedUtility = UtilityFromCurve + CurveModifier + Distance;
-            TotalUtility += ModifiedUtility;
-            TotalUtility = Distance;
-        ///!!! WIP
-        ///!!! Test 
-
-        //TotalUtility += ModifiedUtility;
+        
+        TotalUtility += UtilityFromCurve + CurveModifier;
 
         DebugMessage.Append(FString::Printf(TEXT("\n - [%s]: %.2f → %.2f (%.2f)"),*ParamName.ToString(), ParamValue, UtilityFromCurve, CurveModifier));
-    }
-
-    if (ActorClass)
-    {
-    AActor* GetClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
-    if (GetClosestActor)
-    {
-    float Distance = (ActionExecuterActor->GetActorLocation() - GetClosestActor->GetActorLocation()).Size();
-    TotalUtility = Distance;
-
-    }
     }
 
     DebugMessage.Append(FString::Printf(TEXT("\n = Total: %.2f"), TotalUtility));
@@ -81,7 +58,6 @@ void UAIBaseAction::ApplyEffects(TMap<FName, float>& Parameters)
     {
         float& ParamRef = Parameters.FindOrAdd(ParamName);
         ParamRef = ParamRef + EffectValue;
-        //ParamRef = FMath::Clamp(ParamRef + EffectValue, 0.0f, 1.0f);
     }
 }
 

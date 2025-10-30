@@ -25,7 +25,6 @@ void AAIUtilityController::BeginPlay()
         CrowdFollowingComponent->SetCrowdAvoidanceRangeMultiplier(1.1f);
     }
 
-   // TArray<UAIBaseAction*> Actions;
     CreateAndInitializeActions(Actions);
 
     GetWorldTimerManager().SetTimer(UtilityEvaluationTimer, this, &AAIUtilityController::EvaluateAndAct, 2.0f, true);
