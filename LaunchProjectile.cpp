@@ -15,11 +15,7 @@ ALaunchProjectile::ALaunchProjectile()
 void ALaunchProjectile::BeginPlay()
 {
     Super::BeginPlay();
-
-    if (TargetActor)
-    {
-        LaunchTowardsTarget();
-    }
+    
 }
 
 void ALaunchProjectile::SetupProjectileMovement()
@@ -82,7 +78,7 @@ FVector ALaunchProjectile::CalculateTrajectoryVelocity(FVector StartLoc, FVector
         StartLoc,
         TargetLoc,
         Speed,
-        false, 
+        true, 
         0.0f,  
         GetWorld()->GetGravityZ(), 
         ESuggestProjVelocityTraceOption::DoNotTrace,

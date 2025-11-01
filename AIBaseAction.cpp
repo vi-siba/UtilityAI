@@ -5,6 +5,9 @@
 UAIBaseAction::UAIBaseAction()
 {
     ActionName = TEXT("BaseAction");
+    
+    ///////////////////////
+    SetActionExecuterActor();
 
 }
 
@@ -14,9 +17,15 @@ float UAIBaseAction::CalculateUtility(const TMap<FName, float>& Parameters)
 
     float TotalUtility = 0.0f;
     
+    if (!ActionExecuterActor)
+        return 0.0f;
+
     if (ActorClass)
     {
         AActor* GetClosestActor = UAIActorsInteractions::GetClosestActor(ActorClass, ActionExecuterActor);
+        if (GetClosestActor == nullptr)
+            return 0.0f;
+
         float Distance = (ActionExecuterActor->GetActorLocation() - GetClosestActor->GetActorLocation()).Size();
         TotalUtility += Distance;
     }
@@ -78,10 +87,54 @@ void UAIBaseAction::Execute_Implementation()
     UE_LOG(LogTemp, Log, TEXT("Executing action: %s"), *ActionName.ToString());
 }
 
-void UAIBaseAction::SetActionExecuterActor(AActor* ExecuterActor)
+/*
+bool UAIBaseAction::SetActionExecuterActor(AActor* ExecuterActor)
 {
+    UObject* OuterObject = GetOuter();
+
+    if (OuterObject)
+    {
+        AActor* OuterActor = Cast<AActor>(OuterObject);
+        if (OuterActor)
+        {
+            ActionExecuterActor = OuterActor;
+        }
+    }
+
+    if (!ExecuterActor)
+        return false;
+
     ActionExecuterActor = ExecuterActor;
+    return true;
 }
+*/
+
+// При инициализации - первый раз не устанавливается, так как сначала делают копии UObject'ов, а потом только Pawn
+// Сделать проверку/делей/инициализацию при спавне пешки в контроллере, а не при инициализации действия
+bool UAIBaseAction::SetActionExecuterActor()
+{
+    UObject* OuterObject = GetOuter();
+
+    if (!OuterObject)
+        return false;
+
+    AActor* OuterActor = Cast<AActor>(OuterObject);
+    if (OuterActor)
+    {
+        ActionExecuterActor = OuterActor;
+
+        AController* OuterController = Cast<AController>(OuterObject);
+        if (OuterController)
+        {
+            PawnActor = OuterController->GetPawn(); // Правильно!
+        }
+
+        return true;
+    }
+    else
+        return false;
+}
+
 
 /*
 bool UAIBaseAction::ObstaclesAlongWay(FVector Destination)

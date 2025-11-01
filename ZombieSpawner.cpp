@@ -71,11 +71,10 @@ int AZombieSpawner::AdditionalQuantity()
    int AdditionalNPCQuantity=0;
 
    if (UtilityCurves.IsEmpty())
-    return 0;
+       return 0;
 
    if (CurrentParameters.IsEmpty())
        return 0;
-
 
    for (const auto& [ParamName, Curve] : UtilityCurves)
         {
@@ -88,8 +87,6 @@ int AZombieSpawner::AdditionalQuantity()
             float UtilityFromCurve = Curve->GetFloatValue(ParamValue);
 
             AdditionalNPCQuantity += abs(UtilityFromCurve);
-
         }
    return AdditionalNPCQuantity;
-
 }

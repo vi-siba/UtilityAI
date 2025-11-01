@@ -59,7 +59,9 @@ void AAIUtilityController::EvaluateAndAct()
 
     if (BestAction)
     {
-        BestAction->SetActionExecuterActor(GetPawn());
+      //  BestAction->SetActionExecuterActor(GetPawn());
+      
+        BestAction->SetActionExecuterActor();
         BestAction->Execute();
         BestAction->ApplyEffects(CurrentParameters);
     }
@@ -87,7 +89,18 @@ void AAIUtilityController::CreateAndInitializeActions(TArray<UAIBaseAction*>& Ou
             continue;
         }
 
-        NewAction->SetActionExecuterActor(GetPawn());
+        //bool SetExecuterForAction = NewAction->SetActionExecuterActor(GetPawn());
+
+        /////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////
+        //if (!SetExecuterForAction)
+        //    NewAction->SetActionExecuterActor(GetPawn());
+        /////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////
+
+
 
         for (const FName& ParamName : NewAction->GetRelevantParameters())
         {

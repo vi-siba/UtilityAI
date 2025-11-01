@@ -23,6 +23,7 @@ class UTILITYAI_API UAIBaseAction : public UObject
 public:
     UAIBaseAction();
 
+
     /// <summary>
     /// Calculation of Action utility, based on current NPC parameteres
     /// </summary>
@@ -66,8 +67,15 @@ public:
     UPROPERTY()
     TMap<FName, float> CurveModifiersMap;
 
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Utility AI")
+    AActor* PawnActor;
+
     //!!! Check and rewrite 
-    void SetActionExecuterActor(AActor* ExecuterActor);
+    //! 
+    UFUNCTION(BlueprintCallable, Category = "Utility AI")
+    bool SetActionExecuterActor();
+//    bool SetActionExecuterActor(AActor* ExecuterActor);
     void AddOrUpdateCurveModifier(FName CurveName, float ModifierValue);
     virtual void Execute_Implementation();
 
