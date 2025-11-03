@@ -8,7 +8,6 @@ ALaunchProjectile::ALaunchProjectile()
     PrimaryActorTick.bCanEverTick = true;
 
     ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
-
     SetupProjectileMovement();
 }
 
@@ -16,6 +15,11 @@ void ALaunchProjectile::BeginPlay()
 {
     Super::BeginPlay();
     
+}
+
+void ALaunchProjectile::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
 }
 
 void ALaunchProjectile::SetupProjectileMovement()
@@ -31,11 +35,6 @@ void ALaunchProjectile::SetupProjectileMovement()
         ProjectileMovementComponent->bIsHomingProjectile = false;
         ProjectileMovementComponent->SetAutoActivate(false); 
     }
-}
-
-void ALaunchProjectile::Tick(float DeltaTime)
-{
-    Super::Tick(DeltaTime);
 }
 
 void ALaunchProjectile::SetTarget(AActor* NewTarget)

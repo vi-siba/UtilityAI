@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
-#include "LaunchSelf.generated.h"
+#include "LaunchZombieAction.generated.h"
 
 UCLASS()
 class UTILITYAI_API ULaunchSelf : public UGameplayAbility

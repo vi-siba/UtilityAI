@@ -20,11 +20,6 @@ public:
 protected:
     virtual void BeginPlay() override;
 
-    /*
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UStaticMeshComponent* MeshComponent;
-    */
-
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UProjectileMovementComponent* ProjectileMovementComponent;
 
