@@ -20,6 +20,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Check For Actors")
     static AActor* GetClosestActor(TSubclassOf<AActor> ActorClassToFind, AActor* ExecuterActor);
 
+    //////////////////////////////////
+    ////////////ѕомен€ть на float или добавить возвращаемое bool+float
+    //////////////////////////////////
+    UFUNCTION(BlueprintCallable, Category = "Check For Actors")
+    bool ObstaclesAlongWay(FVector Destination);
+
 protected:
 private:
 

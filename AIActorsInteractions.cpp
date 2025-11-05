@@ -31,3 +31,32 @@ AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToF
 
     return ClosestActor;
 }
+
+
+bool UAIActorsInteractions::ObstaclesAlongWay(FVector Destination)
+{
+    if (!ActionExecuterActor)
+    {
+        return true;
+    }
+
+    TArray<FVector> PathPoints;
+
+    UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
+    if (!NavSys)
+        return true;
+
+    UNavigationPath* NavPath = NavSys->FindPathToLocationSynchronously(GetWorld(), ExecuterActor->GetActorLocation(), Destination);
+    if (NavPath && NavPath->IsValid())
+    {
+        PathPoints = NavPath->PathPoints;
+    }
+
+    int numberOfPoints = sizeof(PathPoints) / sizeof(PathPoints[0]);
+
+    float Distance = FVector::Dist(PathPoints[numberOfPoints - 1], Destination);
+    if (Distance < MinimumDistanceToTarget)
+        return false;
+    else
+        return true;
+}

@@ -135,8 +135,6 @@ bool UAIBaseAction::SetActionExecuterActor()
         return false;
 }
 
-
-/*
 bool UAIBaseAction::ObstaclesAlongWay(FVector Destination)
 {
     if (!ActionExecuterActor)
@@ -164,6 +162,4 @@ bool UAIBaseAction::ObstaclesAlongWay(FVector Destination)
     else
         return true;
 }
-
-*/
 
