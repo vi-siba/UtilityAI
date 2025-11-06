@@ -2,12 +2,12 @@
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
 
-AZombieSpawner::AZombieSpawner()
+NPCSpawner::NPCSpawner()
 {
 
 }
 
-void AZombieSpawner::SpawnNPC()
+void NPCSpawner::SpawnNPC()
 {
     if (SpawnPoints.IsEmpty())
         return;
@@ -35,7 +35,7 @@ void AZombieSpawner::SpawnNPC()
 
 }
 
-bool AZombieSpawner::SpawnSingle(AActor* SpawnPointActor)
+bool NPCSpawner::SpawnSingle(AActor* SpawnPointActor)
 {
     if (!SpawnPointActor)
         return false;
@@ -66,7 +66,7 @@ bool AZombieSpawner::SpawnSingle(AActor* SpawnPointActor)
 
 }
 
-int AZombieSpawner::AdditionalQuantity()
+int NPCSpawner::AdditionalQuantity()
 {
    int AdditionalNPCQuantity=0;
 
