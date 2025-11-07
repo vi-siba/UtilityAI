@@ -2,6 +2,14 @@
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
 
+#include "NavigationSystem.h"
+#include "NavigationPath.h"
+#include "Engine/World.h"
+#include "NavMesh/RecastNavMesh.h"
+
+#include "AI/Navigation/NavQueryFilter.h"
+
+
 AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToFind, AActor* ExecuterActor)
 {
     if (!ActorClassToFind || !ExecuterActor)
@@ -32,7 +40,43 @@ AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToF
     return ClosestActor;
 }
 
+bool UAIActorsInteractions::FindPath(const UObject* WorldContextObject, const FVector& Start, const FVector& End, TArray<FVector>& PathPoints)
+{
+    PathPoints.Empty();
 
+    UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+    if (!World)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Invalid World Context"));
+        return false;
+    }
+
+    UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World);
+    if (!NavSys)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Navigation System not found"));
+        return false;
+    }
+
+    // Простой способ через FindPathToLocationSynchronously
+    UNavigationPath* NavigationPath = NavSys->FindPathToLocationSynchronously(
+        World,
+        Start,
+        End
+    );
+
+    if (NavigationPath && NavigationPath->IsValid())
+    {
+        PathPoints = NavigationPath->PathPoints;
+        UE_LOG(LogTemp, Log, TEXT("Path found with %d points"), PathPoints.Num());
+        return true;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("Path not found"));
+    return false;
+}
+
+/*
 bool UAIActorsInteractions::ObstaclesAlongWay(FVector Destination)
 {
     if (!ActionExecuterActor)
@@ -60,3 +104,4 @@ bool UAIActorsInteractions::ObstaclesAlongWay(FVector Destination)
     else
         return true;
 }
+*/

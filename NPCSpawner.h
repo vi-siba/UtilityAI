@@ -6,17 +6,17 @@
 #include "Curves/CurveFloat.h"
 
 #include "HAL/CriticalSection.h"
-#include "ZombieSpawner.generated.h"
+#include "NPCSpawner.generated.h"
 
 
 UCLASS(Blueprintable)
-class UTILITYAI_API AZombieSpawner : public AActor
+class UTILITYAI_API ANPCSpawner : public AActor
 {
     GENERATED_BODY()
 
 public:
 
-    AZombieSpawner();
+    ANPCSpawner();
 
     UFUNCTION(BlueprintCallable, Category = "Utility AI")
     void SpawnNPC();

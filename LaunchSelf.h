@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
-#include "LaunchZombieAction.generated.h"
+#include "LaunchSelf.generated.h"
 
 UCLASS()
 class UTILITYAI_API ULaunchSelf : public UGameplayAbility
@@ -15,6 +15,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Ability")
     void LaunchSelf(AActor* ClosestActor);
     
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Launch")
+    TSubclassOf<AActor> ActorClass;
+
+
 protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Launch")
     float LaunchStrength = 1500.f;
@@ -22,6 +26,8 @@ protected:
     ACharacter* GetOwnedActor();
 
 private:
+
+    void Function();
 
     //TSubclassOf<AActor> BuildingClass;
     //TArray<FVector> RaisedPointsArray(TArray<FVector> PointsArray);

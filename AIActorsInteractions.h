@@ -23,8 +23,11 @@ public:
     //////////////////////////////////
     ////////////ѕомен€ть на float или добавить возвращаемое bool+float
     //////////////////////////////////
+    //UFUNCTION(BlueprintCallable, Category = "Check For Actors")
+    //bool ObstaclesAlongWay(FVector Destination);
+
     UFUNCTION(BlueprintCallable, Category = "Check For Actors")
-    bool ObstaclesAlongWay(FVector Destination);
+    static bool FindPath(const UObject* WorldContextObject, const FVector& Start, const FVector& End, TArray<FVector>& PathPoints);
 
 protected:
 private:
