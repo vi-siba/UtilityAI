@@ -9,43 +9,10 @@
 
 #include "AI/Navigation/NavQueryFilter.h"
 
-
-AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToFind, AActor* ExecuterActor)
-{
-    if (!ActorClassToFind || !ExecuterActor)
-        return nullptr;
-
-    UWorld* World = ExecuterActor->GetWorld();
-    if (!World)
-        return nullptr;
-
-    // Reset of basic parameters
-    AActor* ClosestActor = nullptr;
-    float MinDistance = FLT_MAX;
-
-    for (TActorIterator<AActor> It(World, ActorClassToFind); It; ++It)
-    {
-        AActor* Actor = *It;
-        if (Actor && Actor != ExecuterActor)
-        {
-            float Distance = FVector::Dist(Actor->GetActorLocation(), ExecuterActor->GetActorLocation());
-            if (Distance < MinDistance)
-            {
-                MinDistance = Distance;
-                ClosestActor = Actor;
-            }
-        }
-    }
-
-    return ClosestActor;
-}
-
 TArray<FVector> UAIActorsInteractions::FindPath(
     UObject* WorldContextObject,
     const FVector& StartLocation,
     const FVector& TargetLocation,
-    int32 GridWidth,
-    int32 GridHeight,
     float CellSize)
 {
     TArray<FVector> Path;
@@ -56,131 +23,144 @@ TArray<FVector> UAIActorsInteractions::FindPath(
         return Path;
     }
 
-    FIntPoint StartGrid = WorldToGrid(StartLocation, CellSize);
-    FIntPoint TargetGrid = WorldToGrid(TargetLocation, CellSize);
-
-    // Проверка валидности точек
-    if (!IsValidGridPosition(StartGrid, GridWidth, GridHeight) ||
-        !IsValidGridPosition(TargetGrid, GridWidth, GridHeight))
+    UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+    if (!World)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Invalid start or target position"));
+        UE_LOG(LogTemp, Error, TEXT("FindPath: Cannot get World!"));
         return Path;
     }
 
-    // Если старт и цель одинаковы
+    // Сохраняем исходные высоты старта и цели
+    float StartZ = StartLocation.Z;
+    float TargetZ = TargetLocation.Z;
+
+    FIntPoint StartGrid = WorldToGrid(StartLocation, CellSize);
+    FIntPoint TargetGrid = WorldToGrid(TargetLocation, CellSize);
+
+    UE_LOG(LogTemp, Log, TEXT("FindPath: StartGrid (%d, %d), TargetGrid (%d, %d)"),
+        StartGrid.X, StartGrid.Y, TargetGrid.X, TargetGrid.Y);
+
+    // Визуализация стартовой и конечной точек
+    if (World)
+    {
+        FVector StartWorldPos = GridToWorld(StartGrid, CellSize);
+        FVector TargetWorldPos = GridToWorld(TargetGrid, CellSize);
+        StartWorldPos.Z = StartZ;
+        TargetWorldPos.Z = TargetZ;
+
+        DrawDebugSphere(World, StartWorldPos, 50.0f, 12, FColor::Green, false, 10.0f);
+        DrawDebugSphere(World, TargetWorldPos, 50.0f, 12, FColor::Red, false, 10.0f);
+        DrawDebugLine(World, StartWorldPos, TargetWorldPos, FColor::Yellow, false, 10.0f, 0, 2.0f);
+    }
+
     if (StartGrid == TargetGrid)
     {
+        UE_LOG(LogTemp, Log, TEXT("Start and target are the same grid position"));
         Path.Add(TargetLocation);
         return Path;
     }
 
-    // Инициализация структур данных
-    TMap<FIntPoint, FPathNode> Grid;
+    // Проверяем доступность стартовой и конечной точек с отладкой
+    bool bStartWalkable = IsPositionWalkable(WorldContextObject, StartGrid, CellSize, StartZ);
+    bool bTargetWalkable = IsPositionWalkable(WorldContextObject, TargetGrid, CellSize, TargetZ);
+
+    UE_LOG(LogTemp, Log, TEXT("Start walkable: %s, Target walkable: %s"),
+        bStartWalkable ? TEXT("True") : TEXT("False"),
+        bTargetWalkable ? TEXT("True") : TEXT("False"));
+
+    if (!bStartWalkable)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Start position is not walkable! Searching for nearest walkable start..."));
+
+        // Пытаемся найти ближайшую проходимую точку от старта
+        FIntPoint WalkableStart = FindNearestWalkablePosition(WorldContextObject, StartGrid, CellSize, StartZ, 5);
+        if (WalkableStart != StartGrid)
+        {
+            UE_LOG(LogTemp, Log, TEXT("Found walkable start at (%d, %d)"), WalkableStart.X, WalkableStart.Y);
+            StartGrid = WalkableStart;
+            bStartWalkable = true;
+        }
+    }
+
+    if (!bTargetWalkable)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Target position is not walkable! Searching for nearest walkable target..."));
+
+        // Пытаемся найти ближайшую проходимую точку от цели
+        FIntPoint WalkableTarget = FindNearestWalkablePosition(WorldContextObject, TargetGrid, CellSize, TargetZ, 5);
+        if (WalkableTarget != TargetGrid)
+        {
+            UE_LOG(LogTemp, Log, TEXT("Found walkable target at (%d, %d)"), WalkableTarget.X, WalkableTarget.Y);
+            TargetGrid = WalkableTarget;
+            bTargetWalkable = true;
+        }
+    }
+
+    if (!bStartWalkable || !bTargetWalkable)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Cannot find walkable start or target position"));
+        return Path;
+    }
+
+    // Упрощенные структуры данных
+    TMap<FIntPoint, float> GCostMap;
     TArray<FIntPoint> OpenSet;
     TMap<FIntPoint, FIntPoint> CameFrom;
 
-    // Начальный узел
-    FPathNode StartNode;
-    StartNode.Position = StartGrid;
-    StartNode.GCost = 0;
-    StartNode.HCost = CalculateHeuristic(StartGrid, TargetGrid);
-    StartNode.CalculateFCost();
-    StartNode.bIsWalkable = IsPositionWalkable(WorldContextObject, StartGrid, CellSize);
-
-    Grid.Add(StartGrid, StartNode);
+    GCostMap.Add(StartGrid, 0.0f);
     OpenSet.Add(StartGrid);
 
-    // Основной цикл A*
-    while (OpenSet.Num() > 0)
+    int32 IterationCount = 0;
+    const int32 MaxIterations = 10000;
+
+    while (OpenSet.Num() > 0 && IterationCount < MaxIterations)
     {
+        IterationCount++;
+
         // Находим узел с минимальной F стоимостью
         int32 CurrentIndex = 0;
         FIntPoint CurrentNode = OpenSet[0];
+        float CurrentFCost = GCostMap.FindRef(CurrentNode) + CalculateHeuristic(CurrentNode, TargetGrid);
 
         for (int32 i = 1; i < OpenSet.Num(); i++)
         {
-            if (Grid.Contains(OpenSet[i]) && Grid.Contains(CurrentNode))
+            FIntPoint TestNode = OpenSet[i];
+            float TestFCost = GCostMap.FindRef(TestNode) + CalculateHeuristic(TestNode, TargetGrid);
+
+            if (TestFCost < CurrentFCost)
             {
-                if (Grid[OpenSet[i]].FCost < Grid[CurrentNode].FCost)
-                {
-                    CurrentNode = OpenSet[i];
-                    CurrentIndex = i;
-                }
+                CurrentNode = TestNode;
+                CurrentIndex = i;
+                CurrentFCost = TestFCost;
             }
         }
 
-        // Проверка достижения цели
         if (CurrentNode == TargetGrid)
         {
-            Path = ReconstructPath(CameFrom, StartGrid, TargetGrid, CellSize);
-
-            // Визуализация финального пути
-            UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
-            if (World)
-            {
-                for (int32 i = 0; i < Path.Num() - 1; i++)
-                {
-                    DrawDebugLine(
-                        World,
-                        Path[i],
-                        Path[i + 1],
-                        FColor::Green,
-                        false,
-                        5.0f,
-                        0,
-                        10.0f
-                    );
-
-                    DrawDebugSphere(
-                        World,
-                        Path[i],
-                        25.0f,
-                        8,
-                        FColor::Blue,
-                        false,
-                        5.0f
-                    );
-                }
-
-                // Отметить старт и финиш
-                DrawDebugSphere(World, StartLocation, 50.0f, 12, FColor::Green, false, 5.0f);
-                DrawDebugSphere(World, TargetLocation, 50.0f, 12, FColor::Red, false, 5.0f);
-            }
-
-            return Path;
+            UE_LOG(LogTemp, Log, TEXT("Path found! Iterations: %d, Path length: %d nodes"),
+                IterationCount, CameFrom.Num() + 1);
+            return ReconstructPath(CameFrom, StartGrid, TargetGrid, CellSize, StartZ, TargetZ);
         }
 
         OpenSet.RemoveAt(CurrentIndex);
 
-        // Обработка соседей
-        TArray<FIntPoint> Neighbors = GetNeighbors(CurrentNode, GridWidth, GridHeight);
+        TArray<FIntPoint> Neighbors = GetNeighbors(CurrentNode);
 
         for (const FIntPoint& Neighbor : Neighbors)
         {
-            // Проверяем проходимость
-            if (!IsPositionWalkable(WorldContextObject, Neighbor, CellSize))
-                continue;
-
-            // Создаем узел если его нет
-            if (!Grid.Contains(Neighbor))
+            // Для целевой точки пропускаем проверку проходимости (уже проверили выше)
+            if (Neighbor != TargetGrid && !IsPositionWalkable(WorldContextObject, Neighbor, CellSize, StartZ))
             {
-                FPathNode NewNode;
-                NewNode.Position = Neighbor;
-                NewNode.bIsWalkable = IsPositionWalkable(WorldContextObject, Neighbor, CellSize);
-                NewNode.HCost = CalculateHeuristic(Neighbor, TargetGrid);
-                Grid.Add(Neighbor, NewNode);
+                continue;
             }
 
-            FPathNode& NeighborNode = Grid[Neighbor];
+            float TentativeGCost = GCostMap.FindRef(CurrentNode) + CellSize;
+            float NeighborGCost = GCostMap.FindRef(Neighbor, MAX_FLT);
 
-            // Вычисляем временную G стоимость (расстояние между центрами ячеек)
-            float TentativeGCost = Grid[CurrentNode].GCost + CellSize;
-
-            if (TentativeGCost < NeighborNode.GCost)
+            if (TentativeGCost < NeighborGCost)
             {
                 CameFrom.Add(Neighbor, CurrentNode);
-                NeighborNode.GCost = TentativeGCost;
-                NeighborNode.CalculateFCost();
+                GCostMap.Add(Neighbor, TentativeGCost);
 
                 if (!OpenSet.Contains(Neighbor))
                 {
@@ -190,115 +170,151 @@ TArray<FVector> UAIActorsInteractions::FindPath(
         }
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Path not found from (%d,%d) to (%d,%d)"),
-        StartGrid.X, StartGrid.Y, TargetGrid.X, TargetGrid.Y);
+    if (IterationCount >= MaxIterations)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Path finding exceeded maximum iterations (%d)"), MaxIterations);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Path not found after %d iterations. OpenSet empty."), IterationCount);
+    }
+
     return Path;
 }
 
-// Проверка проходимости позиции
-bool UAIActorsInteractions::IsPositionWalkable(UObject* WorldContextObject, const FIntPoint& Position, float CellSize)
+bool UAIActorsInteractions::IsPositionWalkable(UObject* WorldContextObject, const FIntPoint& Position, float CellSize, float CheckHeight)
 {
-    if (!WorldContextObject)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("IsPositionWalkable: WorldContextObject is null"));
-        return true;
-    }
+    if (!WorldContextObject) return true;
+
+    UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+    if (!World) return true;
 
     FVector WorldPosition = GridToWorld(Position, CellSize);
+    WorldPosition.Z = CheckHeight; // Используем переданную высоту
+
+    // Настраиваем параметры трассировки в зависимости от размера ячейки
+    float TraceRadius = FMath::Max(CellSize * 0.3f, 10.0f);
+    float TraceHeight = FMath::Max(CellSize * 0.5f, 50.0f);
+
+    FVector TraceStart = WorldPosition + FVector(0, 0, TraceHeight);
+    FVector TraceEnd = WorldPosition - FVector(0, 0, TraceHeight);
 
     TArray<AActor*> ActorsToIgnore;
     TArray<FHitResult> HitResults;
 
-    // Выполняем Sphere Trace для проверки препятствий
-    bool bHit = UKismetSystemLibrary::SphereTraceMulti(
-        WorldContextObject,
-        WorldPosition - FVector(0, 0, 50),
-        WorldPosition + FVector(0, 0, 50),
-        CellSize * 0.4f, // 40% от размера ячейки
+    // Трассируем только по статическим объектам
+    bool bHasObstacle = UKismetSystemLibrary::SphereTraceMulti(
+        World,
+        TraceStart,
+        TraceEnd,
+        TraceRadius,
         UEngineTypes::ConvertToTraceType(ECC_WorldStatic),
-        true, // trace complex
+        false, // Не использовать сложные коллизии
         ActorsToIgnore,
-        EDrawDebugTrace::None,
+        EDrawDebugTrace::None, // Можно включить для отладки: EDrawDebugTrace::ForDuration
         HitResults,
         true
     );
 
-    // Визуализация для отладки
-    UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
-    if (World)
+    // Анализируем результаты трассировки
+    if (bHasObstacle)
     {
-        FColor DebugColor = bHit ? FColor::Red : FColor::Green;
-        float DebugDuration = 0.1f; // Короткая длительность чтобы не засорять экран
-
-        DrawDebugSphere(
-            World,
-            WorldPosition,
-            CellSize * 0.4f,
-            8,
-            DebugColor,
-            false,
-            DebugDuration
-        );
-
-        // Подпись для непроходимых ячеек
-        if (bHit)
+        for (const FHitResult& Hit : HitResults)
         {
-            DrawDebugString(
-                World,
-                WorldPosition + FVector(0, 0, 100),
-                FString::Printf(TEXT("(%d,%d)"), Position.X, Position.Y),
-                nullptr,
-                DebugColor,
-                DebugDuration
-            );
+            // Игнорируем триггеры и определенные типы объектов
+            UPrimitiveComponent* HitComponent = Hit.GetComponent();
+            if (HitComponent && (HitComponent->IsA<UStaticMeshComponent>() || HitComponent->Mobility == EComponentMobility::Static))
+            {
+                // Проверяем, не является ли это полом/землей под нами
+                bool bIsFloor = (Hit.ImpactNormal.Z > 0.7f); // Нормаль смотрит вверх - это пол
+
+                if (!bIsFloor)
+                {
+                    // Это препятствие (стена, объект и т.д.)
+                    UE_LOG(LogTemp, VeryVerbose, TEXT("Obstacle found at (%d, %d): %s"),
+                        Position.X, Position.Y, *Hit.GetActor()->GetName());
+                    return false;
+                }
+            }
+        }
+
+        // Если дошли сюда, значит все попадания - это пол/земля
+        return true;
+    }
+
+    // Если нет попаданий, точка проходима
+    return true;
+}
+
+FIntPoint UAIActorsInteractions::FindNearestWalkablePosition(UObject* WorldContextObject, const FIntPoint& StartPosition, float CellSize, float CheckHeight, int32 MaxRadius)
+{
+    if (IsPositionWalkable(WorldContextObject, StartPosition, CellSize, CheckHeight))
+    {
+        return StartPosition;
+    }
+
+    // Поиск по спирали от стартовой позиции
+    for (int32 Radius = 1; Radius <= MaxRadius; Radius++)
+    {
+        for (int32 X = -Radius; X <= Radius; X++)
+        {
+            for (int32 Y = -Radius; Y <= Radius; Y++)
+            {
+                if (FMath::Abs(X) == Radius || FMath::Abs(Y) == Radius)
+                {
+                    FIntPoint TestPosition = StartPosition + FIntPoint(X, Y);
+                    if (IsPositionWalkable(WorldContextObject, TestPosition, CellSize, CheckHeight))
+                    {
+                        return TestPosition;
+                    }
+                }
+            }
         }
     }
 
-    return !bHit;
+    return StartPosition; // Возвращаем оригинал, если не нашли ничего
 }
 
-// Эвристическая функция (манхэттенское расстояние)
 float UAIActorsInteractions::CalculateHeuristic(const FIntPoint& From, const FIntPoint& To)
 {
+    // Манхэттенское расстояние для 2D
     return FMath::Abs(From.X - To.X) + FMath::Abs(From.Y - To.Y);
 }
 
-// Получение соседних узлов (4-стороннее движение)
-TArray<FIntPoint> UAIActorsInteractions::GetNeighbors(const FIntPoint& Node, int32 GridWidth, int32 GridHeight)
+float UAIActorsInteractions:s:CalculatePathProgress(const FIntPoint& Start, const FIntPoint& End, const FIntPoint& Current)
 {
-    TArray<FIntPoint> Neighbors;
+    float TotalDistance = CalculateHeuristic(Start, End);
+    if (TotalDistance == 0) return 1.0f;
 
-    TArray<FIntPoint> Directions = {
-        FIntPoint(1, 0),   // вправо
-        FIntPoint(-1, 0),  // влево
-        FIntPoint(0, 1),   // вперед
-        FIntPoint(0, -1)   // назад
-    };
-
-    for (const FIntPoint& Direction : Directions)
-    {
-        FIntPoint Neighbor = Node + Direction;
-        if (IsValidGridPosition(Neighbor, GridWidth, GridHeight))
-        {
-            Neighbors.Add(Neighbor);
-        }
-    }
-
-    return Neighbors;
+    float CurrentDistance = CalculateHeuristic(Start, Current);
+    return FMath::Clamp(CurrentDistance / TotalDistance, 0.0f, 1.0f);
 }
 
-// Восстановление пути из карты родителей
+TArray<FIntPoint> UAIActorsInteractions::GetNeighbors(const FIntPoint& Node)
+{
+    return {
+        FIntPoint(Node.X + 1, Node.Y),   // вправо
+        FIntPoint(Node.X - 1, Node.Y),   // влево  
+        FIntPoint(Node.X, Node.Y + 1),   // вперед
+        FIntPoint(Node.X, Node.Y - 1)    // назад
+    };
+}
+
 TArray<FVector> UAIActorsInteractions::ReconstructPath(const TMap<FIntPoint, FIntPoint>& CameFrom,
-    const FIntPoint& Start, const FIntPoint& End,
-    float CellSize)
+    const FIntPoint& Start, const FIntPoint& End, float CellSize, float StartZ, float TargetZ)
 {
     TArray<FVector> Path;
     FIntPoint Current = End;
 
-    // Восстанавливаем путь от конца к началу
     while (Current != Start)
     {
-        Path.Add(GridToWorld(Current, CellSize));
+        FVector WorldPosition = GridToWorld(Current, CellSize);
+
+        // Интерполируем высоту между стартом и финишем
+        float Alpha = CalculatePathProgress(Start, End, Current);
+        WorldPosition.Z = FMath::Lerp(StartZ, TargetZ, Alpha);
+
+        Path.Add(WorldPosition);
 
         const FIntPoint* Parent = CameFrom.Find(Current);
         if (Parent)
@@ -307,20 +323,26 @@ TArray<FVector> UAIActorsInteractions::ReconstructPath(const TMap<FIntPoint, FIn
         }
         else
         {
-            UE_LOG(LogTemp, Error, TEXT("Path reconstruction failed - missing parent for (%d,%d)"), Current.X, Current.Y);
             break;
         }
     }
 
-    // Добавляем стартовую позицию и переворачиваем
-    Path.Add(GridToWorld(Start, CellSize));
+    // Добавляем стартовую точку с оригинальной высотой
+    FVector StartWorldPos = GridToWorld(Start, CellSize);
+    StartWorldPos.Z = StartZ;
+    Path.Add(StartWorldPos);
+
     Algo::Reverse(Path);
 
-    UE_LOG(LogTemp, Log, TEXT("Path found with %d points"), Path.Num());
+    // Убеждаемся, что конечная точка имеет точную высоту цели
+    if (Path.Num() > 0)
+    {
+        Path.Last().Z = TargetZ;
+    }
+
     return Path;
 }
 
-// Конвертация мировых координат в координаты сетки
 FIntPoint UAIActorsInteractions::WorldToGrid(const FVector& WorldLocation, float CellSize)
 {
     return FIntPoint(
@@ -329,21 +351,18 @@ FIntPoint UAIActorsInteractions::WorldToGrid(const FVector& WorldLocation, float
     );
 }
 
-// Конвертация координат сетки в мировые координаты
 FVector UAIActorsInteractions::GridToWorld(const FIntPoint& GridPosition, float CellSize)
 {
     return FVector(
-        GridPosition.X * CellSize + CellSize * 0.5f, // Центр ячейки
-        GridPosition.Y * CellSize + CellSize * 0.5f,
-        50.0f // Высота над землей
+        GridPosition.X * CellSize,
+        GridPosition.Y * CellSize,
+        0.0f  // Базовая высота, будет переопределена в ReconstructPath
     );
 }
 
-// Проверка валидности позиции в сетке
-bool UAIActorsInteractions::IsValidGridPosition(const FIntPoint& GridPosition, int32 GridWidth, int32 GridHeight)
+bool UAIActorsInteractions::IsValidGridPosition(const FIntPoint& GridPosition)
 {
-    return GridPosition.X >= 0 && GridPosition.X < GridWidth &&
-        GridPosition.Y >= 0 && GridPosition.Y < GridHeight;
+    return true;
 }
 
 /*
@@ -375,3 +394,33 @@ bool UAIActorsInteractions::ObstaclesAlongWay(FVector Destination)
         return true;
 }
 */
+
+AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToFind, AActor* ExecuterActor)
+{
+    if (!ActorClassToFind || !ExecuterActor)
+        return nullptr;
+
+    UWorld* World = ExecuterActor->GetWorld();
+    if (!World)
+        return nullptr;
+
+    // Reset of basic parameters
+    AActor* ClosestActor = nullptr;
+    float MinDistance = FLT_MAX;
+
+    for (TActorIterator<AActor> It(World, ActorClassToFind); It; ++It)
+    {
+        AActor* Actor = *It;
+        if (Actor && Actor != ExecuterActor)
+        {
+            float Distance = FVector::Dist(Actor->GetActorLocation(), ExecuterActor->GetActorLocation());
+            if (Distance < MinDistance)
+            {
+                MinDistance = Distance;
+                ClosestActor = Actor;
+            }
+        }
+    }
+
+    return ClosestActor;
+}

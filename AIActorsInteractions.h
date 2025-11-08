@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
@@ -13,7 +13,7 @@ class UTILITYAI_API UAIActorsInteractions : public UBlueprintFunctionLibrary
 {
     GENERATED_BODY()
 public:
-    
+
     /// <summary>
     /// Function to find closest actor of class ActorClassToFind to actor ExecuterActor
     /// </summary>
@@ -21,11 +21,10 @@ public:
     static AActor* GetClosestActor(TSubclassOf<AActor> ActorClassToFind, AActor* ExecuterActor);
 
     //////////////////////////////////
-    ////////////Поменять на float или добавить возвращаемое bool+float
+    ////////////ГЏГ®Г¬ГҐГ­ГїГІГј Г­Г  float ГЁГ«ГЁ Г¤Г®ГЎГ ГўГЁГІГј ГўГ®Г§ГўГ°Г Г№Г ГҐГ¬Г®ГҐ bool+float
     //////////////////////////////////
     //UFUNCTION(BlueprintCallable, Category = "Check For Actors")
     //bool ObstaclesAlongWay(FVector Destination);
-
 
 
 
@@ -36,23 +35,23 @@ public:
         UObject* WorldContextObject,
         const FVector& StartLocation,
         const FVector& TargetLocation,
-        int32 GridWidth = 100,
-        int32 GridHeight = 100,
         float CellSize = 100.0f
     );
 
 private:
-    // Вспомогательные функции
-    static float CalculateHeuristic(const FIntPoint& From, const FIntPoint& To);
-    static TArray<FIntPoint> GetNeighbors(const FIntPoint& Node, int32 GridWidth, int32 GridHeight);
+    static float CalculatePathProgress(const FIntPoint& Start, const FIntPoint& End, const FIntPoint& Current);
+    static TArray<FIntPoint> GetNeighbors(const FIntPoint& Node);
     static TArray<FVector> ReconstructPath(const TMap<FIntPoint, FIntPoint>& CameFrom,
-        const FIntPoint& Start, const FIntPoint& End,
-        float CellSize);
+        const FIntPoint& Start, const FIntPoint& End, float CellSize, float StartZ, float TargetZ);
     static bool IsPositionWalkable(UObject* WorldContextObject, const FIntPoint& Position, float CellSize);
     static FIntPoint WorldToGrid(const FVector& WorldLocation, float CellSize);
     static FVector GridToWorld(const FIntPoint& GridPosition, float CellSize);
-    static bool IsValidGridPosition(const FIntPoint& GridPosition, int32 GridWidth, int32 GridHeight);
+    static bool IsValidGridPosition(const FIntPoint& GridPosition);
 
+    static bool IsPositionWalkable(UObject* WorldContextObject, const FIntPoint& Position, float CellSize, float CheckHeight);
+    static FIntPoint FindNearestWalkablePosition(UObject* WorldContextObject, const FIntPoint& StartPosition, float CellSize, float CheckHeight, int32 MaxRadius);
+
+    static float CalculateHeuristic(const FIntPoint& From, const FIntPoint& To);
 
 private:
 
@@ -80,4 +79,3 @@ struct FPathNode
 
     bool operator<(const FPathNode& Other) const { return FCost < Other.FCost; }
 };
-
