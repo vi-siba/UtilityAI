@@ -9,11 +9,34 @@
 
 #include "AI/Navigation/NavQueryFilter.h"
 
+
+struct FPathNode3D
+{
+    FIntPoint GridPosition;
+    float Height;
+
+    FPathNode3D(const FIntPoint& InGridPosition, float InHeight)
+        : GridPosition(InGridPosition), Height(InHeight) {
+    }
+
+    bool operator==(const FPathNode3D& Other) const
+    {
+        return GridPosition == Other.GridPosition && FMath::IsNearlyEqual(Height, Other.Height, 1.0f);
+    }
+
+    friend uint32 GetTypeHash(const FPathNode3D& Node)
+    {
+        return HashCombine(GetTypeHash(Node.GridPosition), GetTypeHash(Node.Height));
+    }
+};
+
 TArray<FVector> UAIActorsInteractions::FindPath(
     UObject* WorldContextObject,
     const FVector& StartLocation,
     const FVector& TargetLocation,
-    float CellSize)
+    float CellSize,
+    float HeightAboveGround,
+    AActor* CallingActor)
 {
     TArray<FVector> Path;
 
@@ -30,88 +53,58 @@ TArray<FVector> UAIActorsInteractions::FindPath(
         return Path;
     }
 
-    // Сохраняем исходные высоты старта и цели
-    float StartZ = StartLocation.Z;
-    float TargetZ = TargetLocation.Z;
+    // Получаем высоту поверхности для стартовой и конечной точек, игнорируя вызывающий актор для стартовой точки
+    float StartSurfaceHeight = GetSurfaceHeight(WorldContextObject, StartLocation, CellSize, CallingActor); // Игнорируем вызывающий актор
+    float TargetSurfaceHeight = GetSurfaceHeight(WorldContextObject, TargetLocation, CellSize, nullptr); // Для конечной точки не игнорируем
 
     FIntPoint StartGrid = WorldToGrid(StartLocation, CellSize);
     FIntPoint TargetGrid = WorldToGrid(TargetLocation, CellSize);
 
-    UE_LOG(LogTemp, Log, TEXT("FindPath: StartGrid (%d, %d), TargetGrid (%d, %d)"),
-        StartGrid.X, StartGrid.Y, TargetGrid.X, TargetGrid.Y);
+    float StartHeight = StartSurfaceHeight + HeightAboveGround;
+    float TargetHeight = TargetSurfaceHeight + HeightAboveGround;
 
-    // Визуализация стартовой и конечной точек
-    if (World)
+    UE_LOG(LogTemp, Log, TEXT("FindPath: StartGrid (%d, %d) at Z=%.2f, TargetGrid (%d, %d) at Z=%.2f, HeightAboveGround: %.2f"),
+        StartGrid.X, StartGrid.Y, StartHeight,
+        TargetGrid.X, TargetGrid.Y, TargetHeight,
+        HeightAboveGround);
+
+    if (StartGrid == TargetGrid && FMath::IsNearlyEqual(StartHeight, TargetHeight, 10.0f))
     {
-        FVector StartWorldPos = GridToWorld(StartGrid, CellSize);
-        FVector TargetWorldPos = GridToWorld(TargetGrid, CellSize);
-        StartWorldPos.Z = StartZ;
-        TargetWorldPos.Z = TargetZ;
-
-        DrawDebugSphere(World, StartWorldPos, 50.0f, 12, FColor::Green, false, 10.0f);
-        DrawDebugSphere(World, TargetWorldPos, 50.0f, 12, FColor::Red, false, 10.0f);
-        DrawDebugLine(World, StartWorldPos, TargetWorldPos, FColor::Yellow, false, 10.0f, 0, 2.0f);
-    }
-
-    if (StartGrid == TargetGrid)
-    {
-        UE_LOG(LogTemp, Log, TEXT("Start and target are the same grid position"));
-        Path.Add(TargetLocation);
+        UE_LOG(LogTemp, Log, TEXT("Start and target are the same position"));
+        FVector FinalPosition = TargetLocation;
+        FinalPosition.Z = TargetHeight;
+        Path.Add(FinalPosition);
         return Path;
     }
 
-    // Проверяем доступность стартовой и конечной точек с отладкой
-    bool bStartWalkable = IsPositionWalkable(WorldContextObject, StartGrid, CellSize, StartZ);
-    bool bTargetWalkable = IsPositionWalkable(WorldContextObject, TargetGrid, CellSize, TargetZ);
+    // Создаем 3D узлы для старта и цели
+    FPathNode3D StartNode(StartGrid, StartHeight);
+    FPathNode3D TargetNode(TargetGrid, TargetHeight);
+
+    // Проверяем доступность стартовой и конечной точек
+    bool bStartWalkable = IsPositionWalkableAtSpecificHeight(WorldContextObject, StartGrid, StartHeight, CellSize, CallingActor);
+    bool bTargetWalkable = IsPositionWalkableAtSpecificHeight(WorldContextObject, TargetGrid, TargetHeight, CellSize, nullptr);
 
     UE_LOG(LogTemp, Log, TEXT("Start walkable: %s, Target walkable: %s"),
         bStartWalkable ? TEXT("True") : TEXT("False"),
         bTargetWalkable ? TEXT("True") : TEXT("False"));
 
-    if (!bStartWalkable)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Start position is not walkable! Searching for nearest walkable start..."));
-
-        // Пытаемся найти ближайшую проходимую точку от старта
-        FIntPoint WalkableStart = FindNearestWalkablePosition(WorldContextObject, StartGrid, CellSize, StartZ, 5);
-        if (WalkableStart != StartGrid)
-        {
-            UE_LOG(LogTemp, Log, TEXT("Found walkable start at (%d, %d)"), WalkableStart.X, WalkableStart.Y);
-            StartGrid = WalkableStart;
-            bStartWalkable = true;
-        }
-    }
-
-    if (!bTargetWalkable)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Target position is not walkable! Searching for nearest walkable target..."));
-
-        // Пытаемся найти ближайшую проходимую точку от цели
-        FIntPoint WalkableTarget = FindNearestWalkablePosition(WorldContextObject, TargetGrid, CellSize, TargetZ, 5);
-        if (WalkableTarget != TargetGrid)
-        {
-            UE_LOG(LogTemp, Log, TEXT("Found walkable target at (%d, %d)"), WalkableTarget.X, WalkableTarget.Y);
-            TargetGrid = WalkableTarget;
-            bTargetWalkable = true;
-        }
-    }
-
     if (!bStartWalkable || !bTargetWalkable)
     {
-        UE_LOG(LogTemp, Error, TEXT("Cannot find walkable start or target position"));
+        UE_LOG(LogTemp, Error, TEXT("Start or target position is not walkable"));
         return Path;
     }
 
-    // Упрощенные структуры данных
-    TMap<FIntPoint, float> GCostMap;
-    TArray<FIntPoint> OpenSet;
-    TMap<FIntPoint, FIntPoint> CameFrom;
+    // Структуры данных для 3D A*
+    TMap<FPathNode3D, float> GCostMap;
+    TArray<FPathNode3D> OpenSet;
+    TMap<FPathNode3D, FPathNode3D> CameFrom;
 
-    GCostMap.Add(StartGrid, 0.0f);
-    OpenSet.Add(StartGrid);
+    GCostMap.Add(StartNode, 0.0f);
+    OpenSet.Add(StartNode);
 
     int32 IterationCount = 0;
-    const int32 MaxIterations = 10000;
+    const int32 MaxIterations = 20000;
 
     while (OpenSet.Num() > 0 && IterationCount < MaxIterations)
     {
@@ -119,13 +112,13 @@ TArray<FVector> UAIActorsInteractions::FindPath(
 
         // Находим узел с минимальной F стоимостью
         int32 CurrentIndex = 0;
-        FIntPoint CurrentNode = OpenSet[0];
-        float CurrentFCost = GCostMap.FindRef(CurrentNode) + CalculateHeuristic(CurrentNode, TargetGrid);
+        FPathNode3D CurrentNode = OpenSet[0];
+        float CurrentFCost = GCostMap.FindRef(CurrentNode) + CalculateHeuristic3D(CurrentNode, TargetNode);
 
         for (int32 i = 1; i < OpenSet.Num(); i++)
         {
-            FIntPoint TestNode = OpenSet[i];
-            float TestFCost = GCostMap.FindRef(TestNode) + CalculateHeuristic(TestNode, TargetGrid);
+            FPathNode3D TestNode = OpenSet[i];
+            float TestFCost = GCostMap.FindRef(TestNode) + CalculateHeuristic3D(TestNode, TargetNode);
 
             if (TestFCost < CurrentFCost)
             {
@@ -135,26 +128,34 @@ TArray<FVector> UAIActorsInteractions::FindPath(
             }
         }
 
-        if (CurrentNode == TargetGrid)
+        // Визуализация текущего узла (для отладки)
+        if (World && IterationCount % 100 == 0)
         {
-            UE_LOG(LogTemp, Log, TEXT("Path found! Iterations: %d, Path length: %d nodes"),
+            FVector DebugPos = GridToWorld(CurrentNode.GridPosition, CellSize);
+            DebugPos.Z = CurrentNode.Height;
+            DrawDebugPoint(World, DebugPos, 15.0f, FColor::Yellow, false, 2.0f);
+        }
+
+        if (CurrentNode == TargetNode)
+        {
+            UE_LOG(LogTemp, Log, TEXT("3D Path found! Iterations: %d, Path length: %d nodes"),
                 IterationCount, CameFrom.Num() + 1);
-            return ReconstructPath(CameFrom, StartGrid, TargetGrid, CellSize, StartZ, TargetZ);
+            return ReconstructPath3D(CameFrom, StartNode, TargetNode, CellSize);
         }
 
         OpenSet.RemoveAt(CurrentIndex);
 
-        TArray<FIntPoint> Neighbors = GetNeighbors(CurrentNode);
+        // Получаем 3D соседей с учетом высоты
+        TArray<FPathNode3D> Neighbors = GetNeighbors3D(CurrentNode, CellSize, HeightAboveGround, WorldContextObject, CallingActor);
 
-        for (const FIntPoint& Neighbor : Neighbors)
+        for (const FPathNode3D& Neighbor : Neighbors)
         {
-            // Для целевой точки пропускаем проверку проходимости (уже проверили выше)
-            if (Neighbor != TargetGrid && !IsPositionWalkable(WorldContextObject, Neighbor, CellSize, StartZ))
+            if (!IsPositionWalkableAtSpecificHeight(WorldContextObject, Neighbor.GridPosition, Neighbor.Height, CellSize, CallingActor))
             {
                 continue;
             }
 
-            float TentativeGCost = GCostMap.FindRef(CurrentNode) + CellSize;
+            float TentativeGCost = GCostMap.FindRef(CurrentNode) + CalculateDistance3D(CurrentNode, Neighbor, CellSize);
             float NeighborGCost = GCostMap.FindRef(Neighbor, MAX_FLT);
 
             if (TentativeGCost < NeighborGCost)
@@ -172,17 +173,134 @@ TArray<FVector> UAIActorsInteractions::FindPath(
 
     if (IterationCount >= MaxIterations)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Path finding exceeded maximum iterations (%d)"), MaxIterations);
+        UE_LOG(LogTemp, Warning, TEXT("3D Path finding exceeded maximum iterations (%d)"), MaxIterations);
     }
     else
     {
-        UE_LOG(LogTemp, Warning, TEXT("Path not found after %d iterations. OpenSet empty."), IterationCount);
+        UE_LOG(LogTemp, Warning, TEXT("3D Path not found after %d iterations"), IterationCount);
     }
 
     return Path;
 }
 
-bool UAIActorsInteractions::IsPositionWalkable(UObject* WorldContextObject, const FIntPoint& Position, float CellSize, float CheckHeight)
+
+float UAIActorsInteractions::GetSurfaceHeight(UObject* WorldContextObject, const FVector& WorldLocation, float CellSize, AActor* ActorToIgnore)
+{
+    if (!WorldContextObject) return WorldLocation.Z;
+
+    UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+    if (!World) return WorldLocation.Z;
+
+    float TraceDistance = 1000.0f;
+    FVector TraceStart = WorldLocation + FVector(0, 0, TraceDistance);
+    FVector TraceEnd = WorldLocation - FVector(0, 0, TraceDistance);
+
+    TArray<AActor*> ActorsToIgnore;
+
+    // Добавляем актор для игнорирования, если он передан
+    if (ActorToIgnore)
+    {
+        ActorsToIgnore.Add(ActorToIgnore);
+    }
+
+    FHitResult HitResult;
+
+    bool bHit = UKismetSystemLibrary::LineTraceSingle(
+        World,
+        TraceStart,
+        TraceEnd,
+        UEngineTypes::ConvertToTraceType(ECC_WorldStatic),
+        false,
+        ActorsToIgnore,
+        EDrawDebugTrace::None,
+        HitResult,
+        true
+    );
+
+    if (bHit)
+    {
+        return HitResult.ImpactPoint.Z;
+    }
+
+    return WorldLocation.Z;
+}
+
+
+
+// Получение 3D соседей с учетом высоты поверхности
+TArray<UAIActorsInteractions::FPathNode3D> UAIActorsInteractions::GetNeighbors3D(
+    const FPathNode3D& Node,
+    float CellSize,
+    float HeightAboveGround,
+    UObject* WorldContextObject,
+    AActor* ActorToIgnore)  // Добавляем параметр для игнорирования актора
+{
+    TArray<FPathNode3D> Neighbors;
+
+    TArray<FIntPoint> GridNeighbors = GetNeighbors(Node.GridPosition);
+
+    for (const FIntPoint& GridNeighbor : GridNeighbors)
+    {
+        // Получаем высоту поверхности для соседней точки, игнорируя актор если нужно
+        FVector WorldPos = GridToWorld(GridNeighbor, CellSize);
+        float SurfaceHeight = GetSurfaceHeight(WorldContextObject, WorldPos, CellSize, ActorToIgnore);  // Передаем ActorToIgnore
+        float NeighborHeight = SurfaceHeight + HeightAboveGround;
+
+        // Также проверяем точки с небольшим отклонением по высоте для лучшего обхода препятствий
+        TArray<float> HeightVariations = { 0.0f, 25.0f, -25.0f, 50.0f, -50.0f };
+
+        for (float HeightVariation : HeightVariations)
+        {
+            float TestHeight = NeighborHeight + HeightVariation;
+
+            // Проверяем, чтобы высота не была слишком низкой
+            if (TestHeight < SurfaceHeight + 10.0f) continue;
+
+            FPathNode3D NeighborNode(GridNeighbor, TestHeight);
+
+            // Проверяем проходимость на этой высоте, игнорируя актор если нужно
+            if (IsPositionWalkableAtSpecificHeight(WorldContextObject, GridNeighbor, TestHeight, CellSize, ActorToIgnore))  // Передаем ActorToIgnore
+            {
+                Neighbors.Add(NeighborNode);
+            }
+        }
+    }
+
+    return Neighbors;
+}
+
+// Расчет расстояния между 3D узлами
+float UAIActorsInteractions::CalculateDistance3D(const FPathNode3D& From, const FPathNode3D& To, float CellSize)
+{
+    // Горизонтальное расстояние
+    float HorizontalDistance = CalculateDistance(From.GridPosition, To.GridPosition, CellSize);
+
+    // Вертикальное расстояние (с меньшим весом)
+    float VerticalDistance = FMath::Abs(From.Height - To.Height);
+
+    // Комбинируем расстояния (можно настроить веса)
+    return HorizontalDistance + VerticalDistance * 0.5f;
+}
+
+// Эвристика для 3D
+float UAIActorsInteractions::CalculateHeuristic3D(const FPathNode3D& From, const FPathNode3D& To)
+{
+    // Горизонтальное расстояние
+    int32 DX = FMath::Abs(From.GridPosition.X - To.GridPosition.X);
+    int32 DY = FMath::Abs(From.GridPosition.Y - To.GridPosition.Y);
+    float F_DX = static_cast<float>(DX);
+    float F_DY = static_cast<float>(DY);
+    float HorizontalDist = FMath::Sqrt(F_DX * F_DX + F_DY * F_DY);
+
+    // Вертикальное расстояние
+    float VerticalDist = FMath::Abs(From.Height - To.Height);
+
+    // Комбинируем (можно настроить веса)
+    return HorizontalDist + VerticalDist * 0.3f;
+}
+
+// Проверка проходимости на конкретной высоте
+bool UAIActorsInteractions::IsPositionWalkableAtSpecificHeight(UObject* WorldContextObject, const FIntPoint& Position, float Height, float CellSize, AActor* ActorToIgnore)
 {
     if (!WorldContextObject) return true;
 
@@ -190,16 +308,23 @@ bool UAIActorsInteractions::IsPositionWalkable(UObject* WorldContextObject, cons
     if (!World) return true;
 
     FVector WorldPosition = GridToWorld(Position, CellSize);
-    WorldPosition.Z = CheckHeight; // Используем переданную высоту
+    WorldPosition.Z = Height;
 
-    // Настраиваем параметры трассировки в зависимости от размера ячейки
+    // Настраиваем параметры трассировки
     float TraceRadius = FMath::Max(CellSize * 0.3f, 10.0f);
-    float TraceHeight = FMath::Max(CellSize * 0.5f, 50.0f);
+    float VerticalClearance = FMath::Max(CellSize * 0.3f, 30.0f);
 
-    FVector TraceStart = WorldPosition + FVector(0, 0, TraceHeight);
-    FVector TraceEnd = WorldPosition - FVector(0, 0, TraceHeight);
+    FVector TraceStart = WorldPosition + FVector(0, 0, VerticalClearance * 0.5f);
+    FVector TraceEnd = WorldPosition - FVector(0, 0, VerticalClearance * 0.5f);
 
     TArray<AActor*> ActorsToIgnore;
+
+    // Добавляем актор для игнорирования, если он передан
+    if (ActorToIgnore)
+    {
+        ActorsToIgnore.Add(ActorToIgnore);
+    }
+
     TArray<FHitResult> HitResults;
 
     // Трассируем только по статическим объектам
@@ -209,9 +334,9 @@ bool UAIActorsInteractions::IsPositionWalkable(UObject* WorldContextObject, cons
         TraceEnd,
         TraceRadius,
         UEngineTypes::ConvertToTraceType(ECC_WorldStatic),
-        false, // Не использовать сложные коллизии
+        false,
         ActorsToIgnore,
-        EDrawDebugTrace::None, // Можно включить для отладки: EDrawDebugTrace::ForDuration
+        EDrawDebugTrace::None,
         HitResults,
         true
     );
@@ -221,102 +346,45 @@ bool UAIActorsInteractions::IsPositionWalkable(UObject* WorldContextObject, cons
     {
         for (const FHitResult& Hit : HitResults)
         {
-            // Игнорируем триггеры и определенные типы объектов
             UPrimitiveComponent* HitComponent = Hit.GetComponent();
             if (HitComponent && (HitComponent->IsA<UStaticMeshComponent>() || HitComponent->Mobility == EComponentMobility::Static))
             {
-                // Проверяем, не является ли это полом/землей под нами
-                bool bIsFloor = (Hit.ImpactNormal.Z > 0.7f); // Нормаль смотрит вверх - это пол
+                // Проверяем, не является ли это полом/землей
+                bool bIsFloor = (Hit.ImpactNormal.Z > 0.7f);
 
                 if (!bIsFloor)
                 {
                     // Это препятствие (стена, объект и т.д.)
-                    UE_LOG(LogTemp, VeryVerbose, TEXT("Obstacle found at (%d, %d): %s"),
-                        Position.X, Position.Y, *Hit.GetActor()->GetName());
                     return false;
                 }
             }
         }
 
-        // Если дошли сюда, значит все попадания - это пол/земля
         return true;
     }
 
-    // Если нет попаданий, точка проходима
     return true;
 }
-
-FIntPoint UAIActorsInteractions::FindNearestWalkablePosition(UObject* WorldContextObject, const FIntPoint& StartPosition, float CellSize, float CheckHeight, int32 MaxRadius)
-{
-    if (IsPositionWalkable(WorldContextObject, StartPosition, CellSize, CheckHeight))
-    {
-        return StartPosition;
-    }
-
-    // Поиск по спирали от стартовой позиции
-    for (int32 Radius = 1; Radius <= MaxRadius; Radius++)
-    {
-        for (int32 X = -Radius; X <= Radius; X++)
-        {
-            for (int32 Y = -Radius; Y <= Radius; Y++)
-            {
-                if (FMath::Abs(X) == Radius || FMath::Abs(Y) == Radius)
-                {
-                    FIntPoint TestPosition = StartPosition + FIntPoint(X, Y);
-                    if (IsPositionWalkable(WorldContextObject, TestPosition, CellSize, CheckHeight))
-                    {
-                        return TestPosition;
-                    }
-                }
-            }
-        }
-    }
-
-    return StartPosition; // Возвращаем оригинал, если не нашли ничего
-}
-
-float UAIActorsInteractions::CalculateHeuristic(const FIntPoint& From, const FIntPoint& To)
-{
-    // Манхэттенское расстояние для 2D
-    return FMath::Abs(From.X - To.X) + FMath::Abs(From.Y - To.Y);
-}
-
-float UAIActorsInteractions:s:CalculatePathProgress(const FIntPoint& Start, const FIntPoint& End, const FIntPoint& Current)
-{
-    float TotalDistance = CalculateHeuristic(Start, End);
-    if (TotalDistance == 0) return 1.0f;
-
-    float CurrentDistance = CalculateHeuristic(Start, Current);
-    return FMath::Clamp(CurrentDistance / TotalDistance, 0.0f, 1.0f);
-}
-
-TArray<FIntPoint> UAIActorsInteractions::GetNeighbors(const FIntPoint& Node)
-{
-    return {
-        FIntPoint(Node.X + 1, Node.Y),   // вправо
-        FIntPoint(Node.X - 1, Node.Y),   // влево  
-        FIntPoint(Node.X, Node.Y + 1),   // вперед
-        FIntPoint(Node.X, Node.Y - 1)    // назад
-    };
-}
-
-TArray<FVector> UAIActorsInteractions::ReconstructPath(const TMap<FIntPoint, FIntPoint>& CameFrom,
-    const FIntPoint& Start, const FIntPoint& End, float CellSize, float StartZ, float TargetZ)
+// Реконструкция 3D пути
+TArray<FVector> UAIActorsInteractions::ReconstructPath3D(
+    const TMap<FPathNode3D, FPathNode3D>& CameFrom,
+    const FPathNode3D& Start,
+    const FPathNode3D& End,
+    float CellSize)
 {
     TArray<FVector> Path;
-    FIntPoint Current = End;
+    FPathNode3D Current = End;
 
-    while (Current != Start)
+    UE_LOG(LogTemp, Log, TEXT("Reconstructing 3D path"));
+
+    // Собираем все точки пути в правильном порядке (от старта к финишу)
+    TArray<FPathNode3D> PathPoints;
+
+    // Сначала идем от конца к началу
+    while (!(Current == Start))
     {
-        FVector WorldPosition = GridToWorld(Current, CellSize);
-
-        // Интерполируем высоту между стартом и финишем
-        float Alpha = CalculatePathProgress(Start, End, Current);
-        WorldPosition.Z = FMath::Lerp(StartZ, TargetZ, Alpha);
-
-        Path.Add(WorldPosition);
-
-        const FIntPoint* Parent = CameFrom.Find(Current);
+        PathPoints.Insert(Current, 0);
+        const FPathNode3D* Parent = CameFrom.Find(Current);
         if (Parent)
         {
             Current = *Parent;
@@ -326,21 +394,69 @@ TArray<FVector> UAIActorsInteractions::ReconstructPath(const TMap<FIntPoint, FIn
             break;
         }
     }
+    PathPoints.Insert(Start, 0);
 
-    // Добавляем стартовую точку с оригинальной высотой
-    FVector StartWorldPos = GridToWorld(Start, CellSize);
-    StartWorldPos.Z = StartZ;
-    Path.Add(StartWorldPos);
-
-    Algo::Reverse(Path);
-
-    // Убеждаемся, что конечная точка имеет точную высоту цели
-    if (Path.Num() > 0)
+    // Преобразуем 3D узлы в мировые координаты
+    for (const FPathNode3D& Point : PathPoints)
     {
-        Path.Last().Z = TargetZ;
+        FVector WorldPosition = GridToWorld(Point.GridPosition, CellSize);
+        WorldPosition.Z = Point.Height;
+        Path.Add(WorldPosition);
+
+        UE_LOG(LogTemp, VeryVerbose, TEXT("3D Path point (%d, %d, %.2f)"),
+            Point.GridPosition.X, Point.GridPosition.Y, Point.Height);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Reconstructed 3D path with %d points"), Path.Num());
+
+    // Логируем все точки пути
+    for (int32 i = 0; i < Path.Num(); i++)
+    {
+        UE_LOG(LogTemp, Log, TEXT("3D Path point %d: (%.2f, %.2f, %.2f)"),
+            i, Path[i].X, Path[i].Y, Path[i].Z);
     }
 
     return Path;
+}
+
+
+// Остальные функции без изменений
+float UAIActorsInteractions::CalculateDistance(const FIntPoint& From, const FIntPoint& To, float CellSize)
+{
+    int32 DX = FMath::Abs(From.X - To.X);
+    int32 DY = FMath::Abs(From.Y - To.Y);
+
+    if (DX > 0 && DY > 0)
+    {
+        return FMath::Sqrt(2.0f) * CellSize;
+    }
+    else
+    {
+        return CellSize;
+    }
+}
+
+float UAIActorsInteractions::CalculateHeuristic(const FIntPoint& From, const FIntPoint& To)
+{
+    int32 DX = FMath::Abs(From.X - To.X);
+    int32 DY = FMath::Abs(From.Y - To.Y);
+    float F_DX = static_cast<float>(DX);
+    float F_DY = static_cast<float>(DY);
+    return FMath::Sqrt(F_DX * F_DX + F_DY * F_DY);
+}
+
+TArray<FIntPoint> UAIActorsInteractions::GetNeighbors(const FIntPoint& Node)
+{
+    return {
+        FIntPoint(Node.X + 1, Node.Y + 1),
+        FIntPoint(Node.X - 1, Node.Y - 1),
+        FIntPoint(Node.X + 1, Node.Y - 1),
+        FIntPoint(Node.X - 1, Node.Y + 1),
+        FIntPoint(Node.X + 1, Node.Y),
+        FIntPoint(Node.X - 1, Node.Y),
+        FIntPoint(Node.X, Node.Y + 1),
+        FIntPoint(Node.X, Node.Y - 1)
+    };
 }
 
 FIntPoint UAIActorsInteractions::WorldToGrid(const FVector& WorldLocation, float CellSize)
@@ -356,7 +472,7 @@ FVector UAIActorsInteractions::GridToWorld(const FIntPoint& GridPosition, float 
     return FVector(
         GridPosition.X * CellSize,
         GridPosition.Y * CellSize,
-        0.0f  // Базовая высота, будет переопределена в ReconstructPath
+        0.0f
     );
 }
 
