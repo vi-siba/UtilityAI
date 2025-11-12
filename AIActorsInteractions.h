@@ -24,8 +24,9 @@ public:
     //////////////////////////////////
     ////////////Ïîìåíÿòü íà float èëè äîáàâèòü âîçâðàùàåìîå bool+float
     //////////////////////////////////
-    //UFUNCTION(BlueprintCallable, Category = "Check For Actors")
-    //bool ObstaclesAlongWay(FVector Destination);
+    
+    UFUNCTION(BlueprintCallable, Category = "Check For Actors")
+    static bool ObstaclesAlongWay(AActor* ActionExecuterActor, FVector Destination, float MaxDistanceToDestination);
 
 protected:
 private:

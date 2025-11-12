@@ -39,9 +39,7 @@ AActor* UAIActorsInteractions::GetClosestActor(TSubclassOf<AActor> ActorClassToF
     return ClosestActor;
 }
 
-
-/*
-bool UAIActorsInteractions::ObstaclesAlongWay(FVector Destination)
+bool UAIActorsInteractions::ObstaclesAlongWay(AActor* ActionExecuterActor, FVector Destination, float MaxDistanceToDestination)
 {
     if (!ActionExecuterActor)
     {
@@ -50,11 +48,16 @@ bool UAIActorsInteractions::ObstaclesAlongWay(FVector Destination)
 
     TArray<FVector> PathPoints;
 
-    UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
+    UWorld* World = ActionExecuterActor->GetWorld();
+    
+    if (!World)
+        return true;
+
+    UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(World);
     if (!NavSys)
         return true;
 
-    UNavigationPath* NavPath = NavSys->FindPathToLocationSynchronously(GetWorld(), ExecuterActor->GetActorLocation(), Destination);
+    UNavigationPath* NavPath = NavSys->FindPathToLocationSynchronously(World, ActionExecuterActor->GetActorLocation(), Destination);
     if (NavPath && NavPath->IsValid())
     {
         PathPoints = NavPath->PathPoints;
@@ -63,9 +66,8 @@ bool UAIActorsInteractions::ObstaclesAlongWay(FVector Destination)
     int numberOfPoints = sizeof(PathPoints) / sizeof(PathPoints[0]);
 
     float Distance = FVector::Dist(PathPoints[numberOfPoints - 1], Destination);
-    if (Distance < MinimumDistanceToTarget)
+    if (Distance < MaxDistanceToDestination)
         return false;
     else
         return true;
 }
-*/
