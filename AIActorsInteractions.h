@@ -25,6 +25,14 @@ public:
     ////////////Ïîìåíÿòü íà float èëè äîáàâèòü âîçâðàùàåìîå bool+float
     //////////////////////////////////
     
+    /// <summary>
+    /// Function to check for obstacles along the NPC way from curretn ActionExecuterActor location to Destination, checking for Maximum Distance to Destination
+    /// Maximum Distance to Destination can be used as attack range/skill-cast range and ect.
+    /// </summary>
+    /// <param name="ActionExecuterActor"></param>
+    /// <param name="Destination"></param>
+    /// <param name="MaxDistanceToDestination"></param>
+    /// <returns></returns>
     UFUNCTION(BlueprintCallable, Category = "Check For Actors")
     static bool ObstaclesAlongWay(AActor* ActionExecuterActor, FVector Destination, float MaxDistanceToDestination);
 
