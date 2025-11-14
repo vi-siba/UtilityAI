@@ -36,6 +36,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Check For Actors")
     static bool ObstaclesAlongWay(AActor* ActionExecuterActor, FVector Destination, float MaxDistanceToDestination);
 
+
+    // WIP!
+    // Add function to check for cooldown on an Ability and if so - return 0.0f utility, if not - continue;
+
 protected:
 private:
 
